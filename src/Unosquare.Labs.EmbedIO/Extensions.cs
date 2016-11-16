@@ -9,13 +9,69 @@
     using System.Linq;
     using System.Security.Cryptography;
     using System.Text;
-    using System.Dynamic;
 
 #if NET452
     using System.Net.WebSockets;
-    using System.Threading.Tasks;
+    using WebSocketSharp;
+    using System.Collections.Specialized;
+    using global::WebSocketSharp;
 #endif
 
+#if NET452
+    #region License
+    /*
+     * Ext.cs
+     *
+     * Some parts of this code are derived from Mono (http://www.mono-project.com):
+     * - GetStatusDescription is derived from HttpListenerResponse.cs (System.Net)
+     * - IsPredefinedScheme is derived from Uri.cs (System)
+     * - MaybeUri is derived from Uri.cs (System)
+     *
+     * The MIT License
+     *
+     * Copyright (c) 2001 Garrett Rooney
+     * Copyright (c) 2003 Ian MacLean
+     * Copyright (c) 2003 Ben Maurer
+     * Copyright (c) 2003, 2005, 2009 Novell, Inc. (http://www.novell.com)
+     * Copyright (c) 2009 Stephane Delcroix
+     * Copyright (c) 2010-2016 sta.blockhead
+     *
+     * Permission is hereby granted, free of charge, to any person obtaining a copy
+     * of this software and associated documentation files (the "Software"), to deal
+     * in the Software without restriction, including without limitation the rights
+     * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+     * copies of the Software, and to permit persons to whom the Software is
+     * furnished to do so, subject to the following conditions:
+     *
+     * The above copyright notice and this permission notice shall be included in
+     * all copies or substantial portions of the Software.
+     *
+     * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+     * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+     * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+     * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+     * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+     * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+     * THE SOFTWARE.
+     */
+    #endregion
+
+    /// <summary>
+    /// Specifies the byte order.
+    /// Copyright (c) 2012-2015 sta.blockhead
+    /// </summary>
+    public enum ByteOrder
+    {
+        /// <summary>
+        /// Specifies Little-endian.
+        /// </summary>
+        Little,
+        /// <summary>
+        /// Specifies Big-endian.
+        /// </summary>
+        Big
+    }
+#endif
     /// <summary>
     /// Extension methods to help your coding!
     /// </summary>
@@ -620,5 +676,847 @@
         }
 
         #endregion
+
+#if NET452
+        #region WebSocket
+
+        /// <summary>
+        /// Retrieves a sub-array from the specified <paramref name="array"/>. A sub-array starts at
+        /// the specified element position in <paramref name="array"/>.
+        /// </summary>
+        /// <returns>
+        /// An array of T that receives a sub-array, or an empty array of T if any problems with
+        /// the parameters.
+        /// </returns>
+        /// <param name="array">
+        /// An array of T from which to retrieve a sub-array.
+        /// </param>
+        /// <param name="startIndex">
+        /// An <see cref="int"/> that represents the zero-based starting position of
+        /// a sub-array in <paramref name="array"/>.
+        /// </param>
+        /// <param name="length">
+        /// An <see cref="int"/> that represents the number of elements to retrieve.
+        /// </param>
+        /// <typeparam name="T">
+        /// The type of elements in <paramref name="array"/>.
+        /// </typeparam>
+        public static T[] SubArray<T>(this T[] array, int startIndex, int length)
+        {
+            int len;
+            if (array == null || (len = array.Length) == 0)
+                return new T[0];
+
+            if (startIndex < 0 || length <= 0 || startIndex + length > len)
+                return new T[0];
+
+            if (startIndex == 0 && length == len)
+                return array;
+
+            var subArray = new T[length];
+            Array.Copy(array, startIndex, subArray, 0, length);
+
+            return subArray;
+        }
+
+        /// <summary>
+        /// Retrieves a sub-array from the specified <paramref name="array"/>. A sub-array starts at
+        /// the specified element position in <paramref name="array"/>.
+        /// </summary>
+        /// <returns>
+        /// An array of T that receives a sub-array, or an empty array of T if any problems with
+        /// the parameters.
+        /// </returns>
+        /// <param name="array">
+        /// An array of T from which to retrieve a sub-array.
+        /// </param>
+        /// <param name="startIndex">
+        /// A <see cref="long"/> that represents the zero-based starting position of
+        /// a sub-array in <paramref name="array"/>.
+        /// </param>
+        /// <param name="length">
+        /// A <see cref="long"/> that represents the number of elements to retrieve.
+        /// </param>
+        /// <typeparam name="T">
+        /// The type of elements in <paramref name="array"/>.
+        /// </typeparam>
+        public static T[] SubArray<T>(this T[] array, long startIndex, long length)
+        {
+            long len;
+            if (array == null || (len = array.LongLength) == 0)
+                return new T[0];
+
+            if (startIndex < 0 || length <= 0 || startIndex + length > len)
+                return new T[0];
+
+            if (startIndex == 0 && length == len)
+                return array;
+
+            var subArray = new T[length];
+            Array.Copy(array, startIndex, subArray, 0, length);
+
+            return subArray;
+        }
+
+        internal static bool IsData(this byte opcode)
+        {
+            return opcode == 0x1 || opcode == 0x2;
+        }
+
+        internal static bool IsData(this Opcode opcode)
+        {
+            return opcode == Opcode.Text || opcode == Opcode.Binary;
+        }
+
+        internal static byte[] InternalToByteArray(this ushort value, ByteOrder order)
+        {
+            var bytes = BitConverter.GetBytes(value);
+            if (!order.IsHostOrder())
+                Array.Reverse(bytes);
+
+            return bytes;
+        }
+
+        internal static byte[] InternalToByteArray(this ulong value, ByteOrder order)
+        {
+            var bytes = BitConverter.GetBytes(value);
+            if (!order.IsHostOrder())
+                Array.Reverse(bytes);
+
+            return bytes;
+        }
+
+        internal static byte[] Append(this ushort code, string reason)
+        {
+            var ret = code.InternalToByteArray(ByteOrder.Big);
+            if (reason != null && reason.Length > 0)
+            {
+                var buff = new List<byte>(ret);
+                buff.AddRange(Encoding.UTF8.GetBytes(reason));
+                ret = buff.ToArray();
+            }
+
+            return ret;
+        }
+
+        internal static bool IsControl(this byte opcode)
+        {
+            return opcode > 0x7 && opcode < 0x10;
+        }
+
+        internal static byte[] ReadBytes(this Stream stream, long length, int bufferLength)
+        {
+            using (var dest = new MemoryStream())
+            {
+                try
+                {
+                    var buff = new byte[bufferLength];
+                    var nread = 0;
+                    while (length > 0)
+                    {
+                        if (length < bufferLength)
+                            bufferLength = (int)length;
+
+                        nread = stream.Read(buff, 0, bufferLength);
+                        if (nread == 0)
+                            break;
+
+                        dest.Write(buff, 0, nread);
+                        length -= nread;
+                    }
+                }
+                catch
+                {
+                }
+
+                dest.Close();
+                return dest.ToArray();
+            }
+        }
+
+        internal static void WriteBytes(this Stream stream, byte[] bytes, int bufferLength)
+        {
+            using (var input = new MemoryStream(bytes))
+                input.CopyTo(stream, bufferLength);
+        }
+
+        internal static byte[] ReadBytes(this Stream stream, int length)
+        {
+            var buff = new byte[length];
+            var offset = 0;
+            try
+            {
+                var nread = 0;
+                while (length > 0)
+                {
+                    nread = stream.Read(buff, offset, length);
+                    if (nread == 0)
+                        break;
+
+                    offset += nread;
+                    length -= nread;
+                }
+            }
+            catch
+            {
+            }
+
+            return buff.SubArray(0, offset);
+        }
+
+        private static readonly int _retry = 5;
+
+        internal static void ReadBytesAsync(
+          this Stream stream, int length, Action<byte[]> completed, Action<Exception> error
+        )
+        {
+            var buff = new byte[length];
+            var offset = 0;
+            var retry = 0;
+
+            AsyncCallback callback = null;
+            callback =
+              ar =>
+              {
+                  try
+                  {
+                      var nread = stream.EndRead(ar);
+                      if (nread == 0 && retry < _retry)
+                      {
+                          retry++;
+                          stream.BeginRead(buff, offset, length, callback, null);
+
+                          return;
+                      }
+
+                      if (nread == 0 || nread == length)
+                      {
+                          if (completed != null)
+                              completed(buff.SubArray(0, offset + nread));
+
+                          return;
+                      }
+
+                      retry = 0;
+
+                      offset += nread;
+                      length -= nread;
+
+                      stream.BeginRead(buff, offset, length, callback, null);
+                  }
+                  catch (Exception ex)
+                  {
+                      if (error != null)
+                          error(ex);
+                  }
+              };
+
+            try
+            {
+                stream.BeginRead(buff, offset, length, callback, null);
+            }
+            catch (Exception ex)
+            {
+                if (error != null)
+                    error(ex);
+            }
+        }
+
+        internal static void ReadBytesAsync(
+          this Stream stream,
+          long length,
+          int bufferLength,
+          Action<byte[]> completed,
+          Action<Exception> error
+        )
+        {
+            var dest = new MemoryStream();
+            var buff = new byte[bufferLength];
+            var retry = 0;
+
+            Action<long> read = null;
+            read =
+              len =>
+              {
+                  if (len < bufferLength)
+                      bufferLength = (int)len;
+
+                  stream.BeginRead(
+              buff,
+              0,
+              bufferLength,
+              ar =>
+              {
+                  try
+                  {
+                      var nread = stream.EndRead(ar);
+                      if (nread > 0)
+                          dest.Write(buff, 0, nread);
+
+                      if (nread == 0 && retry < _retry)
+                      {
+                          retry++;
+                          read(len);
+
+                          return;
+                      }
+
+                      if (nread == 0 || nread == len)
+                      {
+                          if (completed != null)
+                          {
+                              dest.Close();
+                              completed(dest.ToArray());
+                          }
+
+                          dest.Dispose();
+                          return;
+                      }
+
+                      retry = 0;
+                      read(len - nread);
+                  }
+                  catch (Exception ex)
+                  {
+                      dest.Dispose();
+                      if (error != null)
+                          error(ex);
+                  }
+              },
+              null
+            );
+              };
+
+            try
+            {
+                read(length);
+            }
+            catch (Exception ex)
+            {
+                dest.Dispose();
+                if (error != null)
+                    error(ex);
+            }
+        }
+
+        internal static bool IsSupported(this byte opcode)
+        {
+            return Enum.IsDefined(typeof(Opcode), opcode);
+        }
+
+        internal static ulong ToUInt64(this byte[] source, ByteOrder sourceOrder)
+        {
+            return BitConverter.ToUInt64(source.ToHostOrder(sourceOrder), 0);
+        }
+
+        internal static string UTF8Decode(this byte[] bytes)
+        {
+            try
+            {
+                return Encoding.UTF8.GetString(bytes);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        internal static bool IsReserved(this ushort code)
+        {
+            return code == (ushort)CloseStatusCode.Undefined ||
+                   code == (ushort)CloseStatusCode.NoStatus ||
+                   code == (ushort)CloseStatusCode.Abnormal ||
+                   code == (ushort)CloseStatusCode.TlsHandshakeFailure;
+        }
+
+        internal static bool IsReserved(this CloseStatusCode code)
+        {
+            return code == CloseStatusCode.Undefined ||
+                   code == CloseStatusCode.NoStatus ||
+                   code == CloseStatusCode.Abnormal ||
+                   code == CloseStatusCode.TlsHandshakeFailure;
+        }
+
+        internal static ushort ToUInt16(this byte[] source, ByteOrder sourceOrder)
+        {
+            return BitConverter.ToUInt16(source.ToHostOrder(sourceOrder), 0);
+        }
+
+        /// <summary>
+        /// Converts the order of the specified array of <see cref="byte"/> to the host byte order.
+        /// </summary>
+        /// <returns>
+        /// An array of <see cref="byte"/> converted from <paramref name="source"/>.
+        /// </returns>
+        /// <param name="source">
+        /// An array of <see cref="byte"/> to convert.
+        /// </param>
+        /// <param name="sourceOrder">
+        /// One of the <see cref="ByteOrder"/> enum values, specifies the byte order of
+        /// <paramref name="source"/>.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="source"/> is <see langword="null"/>.
+        /// </exception>
+        public static byte[] ToHostOrder(this byte[] source, ByteOrder sourceOrder)
+        {
+            if (source == null)
+                throw new ArgumentNullException("source");
+
+            return source.Length > 1 && !sourceOrder.IsHostOrder() ? source.Reverse().ToArray() : source;
+        }
+
+        /// <summary>
+        /// Determines whether the specified <see cref="ByteOrder"/> is host (this computer
+        /// architecture) byte order.
+        /// </summary>
+        /// <returns>
+        /// <c>true</c> if <paramref name="order"/> is host byte order; otherwise, <c>false</c>.
+        /// </returns>
+        /// <param name="order">
+        /// One of the <see cref="ByteOrder"/> enum values, to test.
+        /// </param>
+        public static bool IsHostOrder(this ByteOrder order)
+        {
+            // true: !(true ^ true) or !(false ^ false)
+            // false: !(true ^ false) or !(false ^ true)
+            return !(BitConverter.IsLittleEndian ^ (order == ByteOrder.Little));
+        }
+
+        /// <summary>
+        /// Determines whether the specified <see cref="string"/> is a predefined scheme.
+        /// </summary>
+        /// <returns>
+        /// <c>true</c> if <paramref name="value"/> is a predefined scheme; otherwise, <c>false</c>.
+        /// </returns>
+        /// <param name="value">
+        /// A <see cref="string"/> to test.
+        /// </param>
+        public static bool IsPredefinedScheme(this string value)
+        {
+            if (value == null || value.Length < 2)
+                return false;
+
+            var c = value[0];
+            if (c == 'h')
+                return value == "http" || value == "https";
+
+            if (c == 'w')
+                return value == "ws" || value == "wss";
+
+            if (c == 'f')
+                return value == "file" || value == "ftp";
+
+            if (c == 'n')
+            {
+                c = value[1];
+                return c == 'e'
+                       ? value == "news" || value == "net.pipe" || value == "net.tcp"
+                       : value == "nntp";
+            }
+
+            return (c == 'g' && value == "gopher") || (c == 'm' && value == "mailto");
+        }
+
+        /// <summary>
+        /// Determines whether the specified <see cref="string"/> is a URI string.
+        /// </summary>
+        /// <returns>
+        /// <c>true</c> if <paramref name="value"/> may be a URI string; otherwise, <c>false</c>.
+        /// </returns>
+        /// <param name="value">
+        /// A <see cref="string"/> to test.
+        /// </param>
+        public static bool MaybeUri(this string value)
+        {
+            if (value == null || value.Length == 0)
+                return false;
+
+            var idx = value.IndexOf(':');
+            if (idx == -1)
+                return false;
+
+            if (idx >= 10)
+                return false;
+
+            return value.Substring(0, idx).IsPredefinedScheme();
+        }
+
+        /// <summary>
+        /// Converts the specified <see cref="string"/> to a <see cref="Uri"/>.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="Uri"/> converted from <paramref name="uriString"/>,
+        /// or <see langword="null"/> if <paramref name="uriString"/> isn't successfully converted.
+        /// </returns>
+        /// <param name="uriString">
+        /// A <see cref="string"/> to convert.
+        /// </param>
+        public static Uri ToUri(this string uriString)
+        {
+            Uri ret;
+            Uri.TryCreate(
+              uriString, uriString.MaybeUri() ? UriKind.Absolute : UriKind.Relative, out ret);
+
+            return ret;
+        }
+
+        /// <summary>
+        /// Tries to create a <see cref="Uri"/> for WebSocket with
+        /// the specified <paramref name="uriString"/>.
+        /// </summary>
+        /// <returns>
+        /// <c>true</c> if a <see cref="Uri"/> is successfully created; otherwise, <c>false</c>.
+        /// </returns>
+        /// <param name="uriString">
+        /// A <see cref="string"/> that represents a WebSocket URL to try.
+        /// </param>
+        /// <param name="result">
+        /// When this method returns, a <see cref="Uri"/> that represents a WebSocket URL,
+        /// or <see langword="null"/> if <paramref name="uriString"/> is invalid.
+        /// </param>
+        /// <param name="message">
+        /// When this method returns, a <see cref="string"/> that represents an error message,
+        /// or <see cref="String.Empty"/> if <paramref name="uriString"/> is valid.
+        /// </param>
+        internal static bool TryCreateWebSocketUri(
+          this string uriString, out Uri result, out string message)
+        {
+            result = null;
+
+            var uri = uriString.ToUri();
+            if (uri == null)
+            {
+                message = "An invalid URI string: " + uriString;
+                return false;
+            }
+
+            if (!uri.IsAbsoluteUri)
+            {
+                message = "Not an absolute URI: " + uriString;
+                return false;
+            }
+
+            var schm = uri.Scheme;
+            if (!(schm == "ws" || schm == "wss"))
+            {
+                message = "The scheme part isn't 'ws' or 'wss': " + uriString;
+                return false;
+            }
+
+            if (uri.Fragment.Length > 0)
+            {
+                message = "Includes the fragment component: " + uriString;
+                return false;
+            }
+
+            var port = uri.Port;
+            if (port == 0)
+            {
+                message = "The port part is zero: " + uriString;
+                return false;
+            }
+
+            result = port != -1
+                     ? uri
+                     : new Uri(
+                         String.Format(
+                           "{0}://{1}:{2}{3}",
+                           schm,
+                           uri.Host,
+                           schm == "ws" ? 80 : 443,
+                           uri.PathAndQuery));
+
+            message = String.Empty;
+            return true;
+        }
+
+        private const string _tspecials = "()<>@,;:\\\"/[]?={} \t";
+
+        internal static bool IsToken(this string value)
+        {
+            foreach (var c in value)
+                if (c < 0x20 || c >= 0x7f || _tspecials.Contains(c))
+                    return false;
+
+            return true;
+        }
+
+        internal static string CheckIfValidProtocols(this string[] protocols)
+        {
+            return protocols.Any(protocol => protocol == null || protocol.Length == 0 || !protocol.IsToken())
+                   ? "Contains an invalid value."
+                   : protocols.ContainsTwice()
+                     ? "Contains a value twice."
+                     : null;
+        }
+
+        /// <summary>
+        /// Gets the collection of the HTTP cookies from the specified HTTP <paramref name="headers"/>.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="CookieCollection"/> that receives a collection of the HTTP cookies.
+        /// </returns>
+        /// <param name="headers">
+        /// A <see cref="NameValueCollection"/> that contains a collection of the HTTP headers.
+        /// </param>
+        /// <param name="response">
+        /// <c>true</c> if <paramref name="headers"/> is a collection of the response headers;
+        /// otherwise, <c>false</c>.
+        /// </param>
+        public static CookieCollection GetCookies(this NameValueCollection headers, bool response)
+        {
+            var name = response ? "Set-Cookie" : "Cookie";
+            return headers != null && headers.AllKeys.Contains(name)
+                   ? CookieCollectionParser.Parse(headers[name], response)
+                   : new CookieCollection();
+        }
+
+        /// <summary>
+        /// Gets the description of the specified HTTP status <paramref name="code"/>.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="string"/> that represents the description of the HTTP status code.
+        /// </returns>
+        /// <param name="code">
+        /// One of <see cref="HttpStatusCode"/> enum values, indicates the HTTP status code.
+        /// </param>
+        public static string GetDescription(this HttpStatusCode code)
+        {
+            return ((int)code).GetStatusDescription();
+        }
+
+        /// <summary>
+        /// Gets the description of the specified HTTP status <paramref name="code"/>.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="string"/> that represents the description of the HTTP status code.
+        /// </returns>
+        /// <param name="code">
+        /// An <see cref="int"/> that represents the HTTP status code.
+        /// </param>
+        public static string GetStatusDescription(this int code)
+        {
+            switch (code)
+            {
+                case 100: return "Continue";
+                case 101: return "Switching Protocols";
+                case 102: return "Processing";
+                case 200: return "OK";
+                case 201: return "Created";
+                case 202: return "Accepted";
+                case 203: return "Non-Authoritative Information";
+                case 204: return "No Content";
+                case 205: return "Reset Content";
+                case 206: return "Partial Content";
+                case 207: return "Multi-Status";
+                case 300: return "Multiple Choices";
+                case 301: return "Moved Permanently";
+                case 302: return "Found";
+                case 303: return "See Other";
+                case 304: return "Not Modified";
+                case 305: return "Use Proxy";
+                case 307: return "Temporary Redirect";
+                case 400: return "Bad Request";
+                case 401: return "Unauthorized";
+                case 402: return "Payment Required";
+                case 403: return "Forbidden";
+                case 404: return "Not Found";
+                case 405: return "Method Not Allowed";
+                case 406: return "Not Acceptable";
+                case 407: return "Proxy Authentication Required";
+                case 408: return "Request Timeout";
+                case 409: return "Conflict";
+                case 410: return "Gone";
+                case 411: return "Length Required";
+                case 412: return "Precondition Failed";
+                case 413: return "Request Entity Too Large";
+                case 414: return "Request-Uri Too Long";
+                case 415: return "Unsupported Media Type";
+                case 416: return "Requested Range Not Satisfiable";
+                case 417: return "Expectation Failed";
+                case 422: return "Unprocessable Entity";
+                case 423: return "Locked";
+                case 424: return "Failed Dependency";
+                case 500: return "Internal Server Error";
+                case 501: return "Not Implemented";
+                case 502: return "Bad Gateway";
+                case 503: return "Service Unavailable";
+                case 504: return "Gateway Timeout";
+                case 505: return "Http Version Not Supported";
+                case 507: return "Insufficient Storage";
+            }
+
+            return String.Empty;
+        }
+
+        internal static bool ContainsTwice(this string[] values)
+        {
+            var len = values.Length;
+
+            Func<int, bool> contains = null;
+            contains = idx => {
+                if (idx < len - 1)
+                {
+                    for (var i = idx + 1; i < len; i++)
+                        if (values[i] == values[idx])
+                            return true;
+
+                    return contains(++idx);
+                }
+
+                return false;
+            };
+
+            return contains(0);
+        }
+
+        internal static bool CheckWaitTime(this TimeSpan time, out string message)
+        {
+            message = null;
+
+            if (time <= TimeSpan.Zero)
+            {
+                message = "A wait time is zero or less.";
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Converts the specified <paramref name="array"/> to a <see cref="string"/> that
+        /// concatenates the each element of <paramref name="array"/> across the specified
+        /// <paramref name="separator"/>.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="string"/> converted from <paramref name="array"/>,
+        /// or <see cref="String.Empty"/> if <paramref name="array"/> is empty.
+        /// </returns>
+        /// <param name="array">
+        /// An array of T to convert.
+        /// </param>
+        /// <param name="separator">
+        /// A <see cref="string"/> that represents the separator string.
+        /// </param>
+        /// <typeparam name="T">
+        /// The type of elements in <paramref name="array"/>.
+        /// </typeparam>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="array"/> is <see langword="null"/>.
+        /// </exception>
+        public static string ToString<T>(this T[] array, string separator)
+        {
+            if (array == null)
+                throw new ArgumentNullException("array");
+
+            var len = array.Length;
+            if (len == 0)
+                return String.Empty;
+
+            if (separator == null)
+                separator = String.Empty;
+
+            var buff = new StringBuilder(64);
+            (len - 1).Times(i => buff.AppendFormat("{0}{1}", array[i].ToString(), separator));
+
+            buff.Append(array[len - 1].ToString());
+            return buff.ToString();
+        }
+
+        internal static string ToExtensionString(
+      this CompressionMethod method, params string[] parameters)
+        {
+            if (method == CompressionMethod.None)
+                return String.Empty;
+
+            var m = String.Format("permessage-{0}", method.ToString().ToLower());
+            if (parameters == null || parameters.Length == 0)
+                return m;
+
+            return String.Format("{0}; {1}", m, parameters.ToString("; "));
+        }
+
+        internal static bool IsText(this string value)
+        {
+            var len = value.Length;
+            for (var i = 0; i < len; i++)
+            {
+                var c = value[i];
+                if (c < 0x20 && !"\r\n\t".Contains(c))
+                    return false;
+
+                if (c == 0x7f)
+                    return false;
+
+                if (c == '\n' && ++i < len)
+                {
+                    c = value[i];
+                    if (!" \t".Contains(c))
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether the specified <see cref="NameValueCollection"/> contains the entry with
+        /// the specified both <paramref name="name"/> and <paramref name="value"/>.
+        /// </summary>
+        /// <returns>
+        /// <c>true</c> if <paramref name="collection"/> contains the entry with both
+        /// <paramref name="name"/> and <paramref name="value"/>; otherwise, <c>false</c>.
+        /// </returns>
+        /// <param name="collection">
+        /// A <see cref="NameValueCollection"/> to test.
+        /// </param>
+        /// <param name="name">
+        /// A <see cref="string"/> that represents the key of the entry to find.
+        /// </param>
+        /// <param name="value">
+        /// A <see cref="string"/> that represents the value of the entry to find.
+        /// </param>
+        public static bool Contains(this NameValueCollection collection, string name, string value)
+        {
+            if (collection == null || collection.Count == 0)
+                return false;
+
+            var vals = collection[name];
+            if (vals == null)
+                return false;
+
+            foreach (var val in vals.Split(','))
+                if (val.Trim().Equals(value, StringComparison.OrdinalIgnoreCase))
+                    return true;
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether the specified <see cref="string"/> contains any of characters in
+        /// the specified array of <see cref="char"/>.
+        /// </summary>
+        /// <returns>
+        /// <c>true</c> if <paramref name="value"/> contains any of <paramref name="chars"/>;
+        /// otherwise, <c>false</c>.
+        /// </returns>
+        /// <param name="value">
+        /// A <see cref="string"/> to test.
+        /// </param>
+        /// <param name="chars">
+        /// An array of <see cref="char"/> that contains characters to find.
+        /// </param>
+        public static bool Contains(this string value, params char[] chars)
+        {
+            return chars == null || chars.Length == 0
+                   ? true
+                   : value == null || value.Length == 0
+                     ? false
+                     : value.IndexOfAny(chars) > -1;
+        }
+
+        #endregion
+#endif
     }
 }

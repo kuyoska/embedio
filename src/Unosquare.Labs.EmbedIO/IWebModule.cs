@@ -48,12 +48,5 @@
         /// <param name="handler">The handler.</param>
         void AddHandler(string path, HttpVerbs verb, ResponseHandler handler);
 
-        /// <summary>
-        /// Gets the server owning this module. This property is set automatically after registering the module.
-        /// </summary>
-        /// <value>
-        /// The server.
-        /// </value>
-        WebServer Server { get; set; }
     }
 }

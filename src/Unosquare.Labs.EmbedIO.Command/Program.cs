@@ -20,38 +20,40 @@
 
             Console.WriteLine("Unosquare.Labs.EmbedIO Web Server");
 
-            if (!Parser.Default.ParseArguments(args, options)) return;
+            var socketServer = new WebSocketServer();
 
-            Console.WriteLine("  Command-Line Utility: Press any key to stop the server.");
+            //if (!Parser.Default.ParseArguments(args, options)) return;
 
-            var serverUrl = "http://localhost:" + options.Port + "/";
-            using (
-                var server = options.NoVerbose
-                    ? WebServer.Create(serverUrl)
-                    : WebServer.CreateWithConsole(serverUrl))
-            {
-                if (Properties.Settings.Default.UseLocalSessionModule)
-                    server.WithLocalSession();
+            //Console.WriteLine("  Command-Line Utility: Press any key to stop the server.");
 
-                server.EnableCors().WithStaticFolderAt(options.RootPath,
-                    defaultDocument: Properties.Settings.Default.HtmlDefaultDocument);
+            //var serverUrl = "http://localhost:" + options.Port + "/";
+            //using (
+            //    var server = options.NoVerbose
+            //        ? WebServer.Create(serverUrl)
+            //        : WebServer.CreateWithConsole(serverUrl))
+            //{
+            //    if (Properties.Settings.Default.UseLocalSessionModule)
+            //        server.WithLocalSession();
 
-                server.Module<StaticFilesModule>().DefaultExtension = Properties.Settings.Default.HtmlDefaultExtension;
-                server.Module<StaticFilesModule>().UseRamCache = Properties.Settings.Default.UseRamCache;
+            //    server.EnableCors().WithStaticFolderAt(options.RootPath,
+            //        defaultDocument: Properties.Settings.Default.HtmlDefaultDocument);
 
-                if (options.ApiAssemblies != null && options.ApiAssemblies.Count > 0)
-                {
-                    foreach (var api in options.ApiAssemblies)
-                    {
-                        server.Log.DebugFormat("Registering Assembly {0}", api);
-                        LoadApi(api, server);
-                    }
-                }
+            //    server.Module<StaticFilesModule>().DefaultExtension = Properties.Settings.Default.HtmlDefaultExtension;
+            //    server.Module<StaticFilesModule>().UseRamCache = Properties.Settings.Default.UseRamCache;
 
-                // start the server
-                server.RunAsync();
-                Console.ReadKey(true);
-            }
+            //    if (options.ApiAssemblies != null && options.ApiAssemblies.Count > 0)
+            //    {
+            //        foreach (var api in options.ApiAssemblies)
+            //        {
+            //            server.Log.DebugFormat("Registering Assembly {0}", api);
+            //            LoadApi(api, server);
+            //        }
+            //    }
+
+            //    // start the server
+            //    server.RunAsync();
+            //    Console.ReadKey(true);
+            //}
         }
 
         /// <summary>
