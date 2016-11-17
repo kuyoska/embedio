@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using WebSocketSharp.Net;
 
 namespace Unosquare.Labs.EmbedIO.WebSocketSharp
 {
@@ -232,7 +233,7 @@ namespace Unosquare.Labs.EmbedIO.WebSocketSharp
                 else if (pair.StartsWith("comment", StringComparison.InvariantCultureIgnoreCase))
                 {
                     if (cookie != null)
-                        cookie.Comment = pair.GetValue('=').UrlDecode();
+                        cookie.Comment = HttpUtility.UrlDecode(pair.GetValue('='));
                 }
                 else if (pair.StartsWith("commenturl", StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -286,122 +287,7 @@ namespace Unosquare.Labs.EmbedIO.WebSocketSharp
 
             return cookies;
         }
-
-        private static int getChar(string s, int offset, int length)
-        {
-            var val = 0;
-            var end = length + offset;
-            for (var i = offset; i < end; i++)
-            {
-                var c = s[i];
-                if (c > 127)
-                    return -1;
-
-                var current = getInt((byte)c);
-                if (current == -1)
-                    return -1;
-
-                val = (val << 4) + current;
-            }
-
-            return val;
-        }
-
-        private static int getInt(byte b)
-        {
-            var c = (char)b;
-            return c >= '0' && c <= '9'
-                   ? c - '0'
-                   : c >= 'a' && c <= 'f'
-                     ? c - 'a' + 10
-                     : c >= 'A' && c <= 'F'
-                       ? c - 'A' + 10
-                       : -1;
-        }
-
-        private static void writeCharBytes(char c, IList buffer, Encoding encoding)
-        {
-            if (c > 255)
-            {
-                foreach (var b in encoding.GetBytes(new[] { c }))
-                    buffer.Add(b);
-
-                return;
-            }
-
-            buffer.Add((byte)c);
-        }
-
-        public static string UrlDecode(string s, Encoding encoding)
-        {
-            if (s == null || s.Length == 0 || !s.Contains('%', '+'))
-                return s;
-
-            if (encoding == null)
-                encoding = Encoding.UTF8;
-
-            var buff = new List<byte>();
-            var len = s.Length;
-            for (var i = 0; i < len; i++)
-            {
-                var c = s[i];
-                if (c == '%' && i + 2 < len && s[i + 1] != '%')
-                {
-                    int xchar;
-                    if (s[i + 1] == 'u' && i + 5 < len)
-                    {
-                        // Unicode hex sequence.
-                        xchar = getChar(s, i + 2, 4);
-                        if (xchar != -1)
-                        {
-                            writeCharBytes((char)xchar, buff, encoding);
-                            i += 5;
-                        }
-                        else
-                        {
-                            writeCharBytes('%', buff, encoding);
-                        }
-                    }
-                    else if ((xchar = getChar(s, i + 1, 2)) != -1)
-                    {
-                        writeCharBytes((char)xchar, buff, encoding);
-                        i += 2;
-                    }
-                    else
-                    {
-                        writeCharBytes('%', buff, encoding);
-                    }
-
-                    continue;
-                }
-
-                if (c == '+')
-                {
-                    writeCharBytes(' ', buff, encoding);
-                    continue;
-                }
-
-                writeCharBytes(c, buff, encoding);
-            }
-
-            return encoding.GetString(buff.ToArray());
-        }
-
-        /// <summary>
-        /// URL-decodes the specified <see cref="string"/>.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="string"/> that receives the decoded string,
-        /// or the <paramref name="value"/> if it's <see langword="null"/> or empty.
-        /// </returns>
-        /// <param name="value">
-        /// A <see cref="string"/> to decode.
-        /// </param>
-        public static string UrlDecode(this string value)
-        {
-            return value != null && value.Length > 0 ? UrlDecode(value, Encoding.UTF8) : value;
-        }
-
+        
         internal static CookieCollection Parse(string value, bool response)
         {
             return response

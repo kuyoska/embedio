@@ -34,7 +34,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using Unosquare.Labs.EmbedIO;
-using WebSocketSharp.Net;
+using Unosquare.Labs.EmbedIO.WebSocketSharp;
 
 namespace WebSocketSharp
 {
@@ -83,7 +83,7 @@ namespace WebSocketSharp
 
                 var contentType = _headers["Content-Type"];
                 if (contentType != null && contentType.Length > 0)
-                    enc = HttpUtility.GetEncoding(contentType);
+                    enc = GetEncoding(contentType);
 
                 return (enc ?? Encoding.UTF8).GetString(EntityBodyData);
             }
@@ -108,6 +108,19 @@ namespace WebSocketSharp
         #endregion
 
         #region Private Methods
+
+        private static Encoding GetEncoding(string contentType)
+        {
+            var parts = contentType.Split(';');
+            foreach (var p in parts)
+            {
+                var part = p.Trim();
+                if (part.StartsWith("charset", StringComparison.OrdinalIgnoreCase))
+                    return Encoding.GetEncoding(part.GetValue('=', true));
+            }
+
+            return null;
+        }
 
         private static byte[] readEntityBody(Stream stream, string length)
         {

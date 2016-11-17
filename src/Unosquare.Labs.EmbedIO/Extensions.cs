@@ -9,7 +9,6 @@
     using System.Linq;
     using System.Security.Cryptography;
     using System.Text;
-
 #if NET452
     using System.Net.WebSockets;
     using WebSocketSharp;
@@ -1795,11 +1794,6 @@
             return false;
         }
 
-        internal static string TrimEndSlash(this string value)
-        {
-            value = value.TrimEnd('/');
-            return value.Length > 0 ? value : "/";
-        }
         #endregion
 #endif
     }

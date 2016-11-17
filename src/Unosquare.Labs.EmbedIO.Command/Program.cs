@@ -50,10 +50,11 @@
                 if (key.Key == ConsoleKey.C)
                 {
                     var webSocket = new ClientWebSocket();
-                    webSocket.ConnectAsync(new Uri("ws://localhost:8080/echo"), cts.Token).Wait();
-                    webSocket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes("HOLA")), WebSocketMessageType.Text, true, cts.Token).Wait();
+                    webSocket.ConnectAsync(new Uri("ws://localhost:8080/echo"), cts.Token).Wait(cts.Token);
+                    webSocket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes("HOLA")), WebSocketMessageType.Text, true, cts.Token).Wait(cts.Token);
                     var responseBytes = new ArraySegment<byte>(new byte[100]);
-                    webSocket.ReceiveAsync(responseBytes, cts.Token).Wait();
+                    webSocket.ReceiveAsync(responseBytes, cts.Token).Wait(cts.Token);
+                    webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", cts.Token).Wait(cts.Token);
 
                     Console.WriteLine($"RX {Encoding.UTF8.GetString(responseBytes.Array)}");
                     break;

@@ -32,14 +32,13 @@ using System.IO;
 using System.Net;
 using Unosquare.Labs.EmbedIO;
 using Unosquare.Labs.EmbedIO.Log;
-using WebSocketSharp.Net;
 using WebSocketSharp.Net.WebSockets;
 
 namespace WebSocketSharp.Server
 {
     /// <summary>
     /// Exposes the methods and properties used to define the behavior of a WebSocket service
-    /// provided by the <see cref="WebSocketServer"/> or <see cref="HttpServer"/>.
+    /// provided by the <see cref="WebSocketServer"/>
     /// </summary>
     /// <remarks>
     /// The WebSocketBehavior class is an abstract class.
@@ -75,6 +74,12 @@ namespace WebSocketSharp.Server
 
         #region Protected Properties
 
+        /// <summary>
+        /// Gets or sets the cookies validator.
+        /// </summary>
+        /// <value>
+        /// The cookies validator.
+        /// </value>
         public Func<CookieCollection, CookieCollection, bool> CookiesValidator
         {
             get
@@ -92,7 +97,7 @@ namespace WebSocketSharp.Server
         /// Gets the logging functions.
         /// </summary>
         /// <value>
-        /// A <see cref="Logger"/> that provides the logging functions,
+        /// A <see cref="ILog"/> that provides the logging functions,
         /// or <see langword="null"/> if the WebSocket connection isn't established.
         /// </value>
         protected ILog Log
@@ -355,7 +360,6 @@ namespace WebSocketSharp.Server
 
         internal void Start(WebSocketContext context, ILog logger)
         {
-
             if (_websocket != null)
             {
                 _websocket.Log.Error("A session instance cannot be reused.");
