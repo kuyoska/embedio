@@ -28,6 +28,7 @@
 #endregion
 
 using System;
+using Unosquare.Labs.EmbedIO;
 
 namespace WebSocketSharp
 {

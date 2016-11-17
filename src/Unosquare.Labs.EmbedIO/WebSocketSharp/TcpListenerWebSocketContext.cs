@@ -38,10 +38,13 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
+using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Principal;
 using System.Text;
+using Unosquare.Labs.EmbedIO;
+using Unosquare.Labs.EmbedIO.Log;
 
 namespace WebSocketSharp.Net.WebSockets
 {
@@ -75,7 +78,7 @@ namespace WebSocketSharp.Net.WebSockets
 #if SSL
           ServerSslConfiguration sslConfig,
 #endif
-          Logger logger
+          ILog logger
         )
         {
             _tcpClient = tcpClient;
@@ -119,7 +122,7 @@ namespace WebSocketSharp.Net.WebSockets
 
         #region Internal Properties
 
-        internal Logger Log
+        internal ILog Log
         {
             get
             {
@@ -403,8 +406,9 @@ namespace WebSocketSharp.Net.WebSockets
 
         #endregion
 
-        #region Internal Methods
+#region Internal Methods
 
+#if AUTHENTICATION
         internal bool Authenticate(
           AuthenticationSchemes scheme,
           string realm,
@@ -454,6 +458,7 @@ namespace WebSocketSharp.Net.WebSockets
 
             return auth();
         }
+#endif
 
         internal void Close()
         {
@@ -473,9 +478,9 @@ namespace WebSocketSharp.Net.WebSockets
             _request = HttpRequest.Read(_stream, 15000);
         }
 
-        #endregion
+#endregion
 
-        #region Public Methods
+#region Public Methods
 
         /// <summary>
         /// Returns a <see cref="string"/> that represents
@@ -490,7 +495,7 @@ namespace WebSocketSharp.Net.WebSockets
             return _request.ToString();
         }
 
-        #endregion
+#endregion
     }
 }
 #endif

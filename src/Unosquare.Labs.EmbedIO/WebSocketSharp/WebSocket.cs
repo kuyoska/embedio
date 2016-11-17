@@ -562,9 +562,9 @@ namespace WebSocketSharp
         /// values.
         /// </remarks>
         /// <value>
-        /// A <see cref="Logger"/> that provides the logging functions.
+        /// A <see cref="ILog"/> that provides the logging functions.
         /// </value>
-        public Logger Log
+        public ILog Log
         {
             get
             {
@@ -1363,7 +1363,7 @@ namespace WebSocketSharp
         {
             try
             {
-                OnError.Emit(this, new ErrorEventArgs(message, exception));
+                OnError(this, new ErrorEventArgs(exception));
             }
             catch (Exception ex)
             {
@@ -1417,7 +1417,7 @@ namespace WebSocketSharp
             {
                 try
                 {
-                    OnMessage.Emit(this, e);
+                    OnMessage(this, e);
                 }
                 catch (Exception ex)
                 {
@@ -1443,7 +1443,7 @@ namespace WebSocketSharp
         {
             try
             {
-                OnMessage.Emit(this, e);
+                OnMessage(this, e);
             }
             catch (Exception ex)
             {
@@ -1471,7 +1471,7 @@ namespace WebSocketSharp
             startReceiving();
             try
             {
-                OnOpen.Emit(this, EventArgs.Empty);
+                OnOpen(this, EventArgs.Empty);
             }
             catch (Exception ex)
             {
@@ -1497,7 +1497,7 @@ namespace WebSocketSharp
         private bool processCloseFrame(WebSocketFrame frame)
         {
             var payload = frame.PayloadData;
-            close(new CloseEventArgs(payload), !payload.IncludesReservedCloseStatusCode, false, true);
+            close(new CloseEventArgs(payload), !payload.HasReservedCode, false, true);
 
             return false;
         }
@@ -1508,7 +1508,24 @@ namespace WebSocketSharp
             if (cookies.Count == 0)
                 return;
 
-            _cookies.SetOrRemove(cookies);
+            foreach (Cookie cookie in _cookies)
+            {
+                if (_cookies[cookie.Name] == null)
+                {
+                    if (!cookie.Expired)
+                        _cookies.Add(cookie);
+
+                    continue;
+                }
+
+                if (!cookie.Expired)
+                {
+                    _cookies.Add(cookie);
+                    continue;
+                }
+
+                // TODO: Clear cookie
+            }
         }
 
         private bool processDataFrame(WebSocketFrame frame)
@@ -1643,7 +1660,7 @@ namespace WebSocketSharp
         // As server
         private void processSecWebSocketProtocolHeader(IEnumerable<string> values)
         {
-            if (values.Contains(p => p == _protocol))
+            if (values.Any(p => p == _protocol))
                 return;
 
             _protocol = null;
@@ -1914,7 +1931,7 @@ namespace WebSocketSharp
                 _logger.WarnFormat("Received a redirection to '{0}'.", url);
                 if (_enableRedirection)
                 {
-                    if (url.IsNullOrEmpty())
+                    if (string.IsNullOrEmpty(url))
                     {
                         _logger.Error("No url to redirect is located.");
                         return res;
@@ -1944,9 +1961,9 @@ namespace WebSocketSharp
         // As client
         private HttpResponse sendHttpRequest(HttpRequest request, int millisecondsTimeout)
         {
-            _logger.Debug("A request to the server:\n" + request.ToString());
+            _logger.DebugFormat("A request to the server:\n" + request.ToString());
             var res = request.GetResponse(_stream, millisecondsTimeout);
-            _logger.Debug("A response to this request:\n" + res.ToString());
+            _logger.DebugFormat("A response to this request:\n" + res.ToString());
 
             return res;
         }
@@ -2126,11 +2143,11 @@ namespace WebSocketSharp
                     }
 
                     if (!ext.Contains("client_no_context_takeover"))
-                        _logger.Warn("The server hasn't sent back 'client_no_context_takeover'.");
+                        _logger.Info("The server hasn't sent back 'client_no_context_takeover'.");
 
                     var method = _compression.ToExtensionString();
                     var invalid =
-                      ext.SplitHeaderValue(';').Contains(
+                      ext.SplitHeaderValue(';').Any(
                         t => {
                             t = t.Trim();
                             return t != method
@@ -2234,7 +2251,7 @@ namespace WebSocketSharp
                 return false;
             }
 
-            if (!reason.IsNullOrEmpty() && reason.UTF8Encode().Length > 123)
+            if (!string.IsNullOrEmpty(reason) && Encoding.UTF8.GetBytes(reason).Length > 123)
             {
                 message = "The size of 'reason' is greater than the allowable max size.";
                 return false;
@@ -2249,7 +2266,7 @@ namespace WebSocketSharp
         {
             message = null;
 
-            if (code == CloseStatusCode.NoStatus && !reason.IsNullOrEmpty())
+            if (code == CloseStatusCode.NoStatus && !string.IsNullOrEmpty(reason))
             {
                 message = "'code' cannot have a reason.";
                 return false;
@@ -2267,7 +2284,7 @@ namespace WebSocketSharp
                 return false;
             }
 
-            if (!reason.IsNullOrEmpty() && reason.UTF8Encode().Length > 123)
+            if (!string.IsNullOrEmpty(reason) && Encoding.UTF8.GetBytes(reason).Length > 123)
             {
                 message = "The size of 'reason' is greater than the allowable max size.";
                 return false;
@@ -2374,7 +2391,7 @@ namespace WebSocketSharp
             var buff = new StringBuilder(base64Key, 64);
             buff.Append(_guid);
             SHA1 sha1 = new SHA1CryptoServiceProvider();
-            var src = sha1.ComputeHash(buff.ToString().UTF8Encode());
+            var src = sha1.ComputeHash(Encoding.UTF8.GetBytes(buff.ToString()));
 
             return Convert.ToBase64String(src);
         }
@@ -3001,6 +3018,15 @@ namespace WebSocketSharp
             return Ping(WebSocketFrame.CreatePingFrame(data, _client).ToArray(), _waitTime);
         }
 
+        static string CheckIfAvailable(WebSocketState state, bool connecting, bool open, bool closing, bool closed)
+        {
+            return (!connecting && state == WebSocketState.Connecting) ||
+                   (!open && state == WebSocketState.Open) ||
+                   (!closing && state == WebSocketState.Closing) ||
+                   (!closed && state == WebSocketState.Closed)
+                   ? "This operation isn't available in: " + state.ToString().ToLower()
+                   : null;
+        }
         /// <summary>
         /// Sends binary <paramref name="data"/> using the WebSocket connection.
         /// </summary>
@@ -3009,7 +3035,7 @@ namespace WebSocketSharp
         /// </param>
         public void Send(byte[] data)
         {
-            var msg = _readyState.CheckIfAvailable(false, true, false, false) ??
+            var msg = CheckIfAvailable(_readyState, false, true, false, false) ??
                       CheckSendParameter(data);
 
             if (msg != null)
@@ -3031,7 +3057,7 @@ namespace WebSocketSharp
         /// </param>
         public void Send(FileInfo file)
         {
-            var msg = _readyState.CheckIfAvailable(false, true, false, false) ??
+            var msg = CheckIfAvailable(_readyState, false, true, false, false) ??
                       CheckSendParameter(file);
 
             if (msg != null)
@@ -3053,7 +3079,7 @@ namespace WebSocketSharp
         /// </param>
         public void Send(string data)
         {
-            var msg = _readyState.CheckIfAvailable(false, true, false, false) ??
+            var msg = CheckIfAvailable(_readyState, false, true, false, false) ??
                       CheckSendParameter(data);
 
             if (msg != null)
@@ -3064,7 +3090,7 @@ namespace WebSocketSharp
                 return;
             }
 
-            send(Opcode.Text, new MemoryStream(data.UTF8Encode()));
+            send(Opcode.Text, new MemoryStream(Encoding.UTF8.GetBytes(data)));
         }
 
         /// <summary>
@@ -3083,7 +3109,7 @@ namespace WebSocketSharp
         /// </param>
         public void SendAsync(byte[] data, Action<bool> completed)
         {
-            var msg = _readyState.CheckIfAvailable(false, true, false, false) ??
+            var msg = CheckIfAvailable(_readyState, false, true, false, false) ??
                       CheckSendParameter(data);
 
             if (msg != null)
@@ -3114,7 +3140,7 @@ namespace WebSocketSharp
         /// </param>
         public void SendAsync(FileInfo file, Action<bool> completed)
         {
-            var msg = _readyState.CheckIfAvailable(false, true, false, false) ??
+            var msg = CheckIfAvailable(_readyState, false, true, false, false) ??
                       CheckSendParameter(file);
 
             if (msg != null)
@@ -3144,7 +3170,7 @@ namespace WebSocketSharp
         /// </param>
         public void SendAsync(string data, Action<bool> completed)
         {
-            var msg = _readyState.CheckIfAvailable(false, true, false, false) ??
+            var msg = CheckIfAvailable(_readyState, false, true, false, false) ??
                       CheckSendParameter(data);
 
             if (msg != null)
@@ -3155,7 +3181,7 @@ namespace WebSocketSharp
                 return;
             }
 
-            sendAsync(Opcode.Text, new MemoryStream(data.UTF8Encode()), completed);
+            sendAsync(Opcode.Text, new MemoryStream(Encoding.UTF8.GetBytes(data)), completed);
         }
 
         /// <summary>
@@ -3178,7 +3204,7 @@ namespace WebSocketSharp
         /// </param>
         public void SendAsync(Stream stream, int length, Action<bool> completed)
         {
-            var msg = _readyState.CheckIfAvailable(false, true, false, false) ??
+            var msg = CheckIfAvailable(_readyState, false, true, false, false) ??
                       CheckSendParameters(stream, length);
 
             if (msg != null)
@@ -3202,13 +3228,10 @@ namespace WebSocketSharp
                   }
 
                   if (len < length)
-                      _logger.Warn(
-                  String.Format(
+                      _logger.InfoFormat(
                     "The length of the data is less than 'length':\n  expected: {0}\n  actual: {1}",
                     length,
-                    len
-                  )
-                );
+                    len);
 
                   var sent = send(Opcode.Binary, new MemoryStream(data));
                   if (completed != null)
@@ -3258,7 +3281,7 @@ namespace WebSocketSharp
                 }
 
                 lock (_cookies.SyncRoot)
-                    _cookies.SetOrRemove(cookie);
+                    _cookies.Add(cookie);
             }
         }
 

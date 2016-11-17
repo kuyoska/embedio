@@ -15,6 +15,7 @@
     using WebSocketSharp;
     using System.Collections.Specialized;
     using global::WebSocketSharp;
+    using System.Net.Sockets;
 #endif
 
 #if NET452
@@ -1355,7 +1356,8 @@
             var len = values.Length;
 
             Func<int, bool> contains = null;
-            contains = idx => {
+            contains = idx =>
+            {
                 if (idx < len - 1)
                 {
                     for (var i = idx + 1; i < len; i++)
@@ -1422,6 +1424,60 @@
 
             buff.Append(array[len - 1].ToString());
             return buff.ToString();
+        }
+
+        /// <summary>
+        /// Executes the specified <c>Action&lt;int&gt;</c> delegate <paramref name="n"/> times.
+        /// </summary>
+        /// <param name="n">
+        /// An <see cref="int"/> is the number of times to execute.
+        /// </param>
+        /// <param name="action">
+        /// An <c>Action&lt;int&gt;</c> delegate that references the method(s) to execute.
+        /// An <see cref="int"/> parameter to pass to the method(s) is the zero-based count of
+        /// iteration.
+        /// </param>
+        public static void Times(this int n, Action<int> action)
+        {
+            if (n > 0 && action != null)
+                for (int i = 0; i < n; i++)
+                    action(i);
+        }
+
+        /// <summary>
+        /// Executes the specified <see cref="Action"/> delegate <paramref name="n"/> times.
+        /// </summary>
+        /// <param name="n">
+        /// A <see cref="long"/> is the number of times to execute.
+        /// </param>
+        /// <param name="action">
+        /// An <see cref="Action"/> delegate that references the method(s) to execute.
+        /// </param>
+        public static void Times(this long n, Action action)
+        {
+            if (n > 0 && action != null)
+                ((ulong)n).times(action);
+        }
+
+        private static void times(this ulong n, Action action)
+        {
+            for (ulong i = 0; i < n; i++)
+                action();
+        }
+
+        /// <summary>
+        /// Executes the specified <see cref="Action"/> delegate <paramref name="n"/> times.
+        /// </summary>
+        /// <param name="n">
+        /// An <see cref="int"/> is the number of times to execute.
+        /// </param>
+        /// <param name="action">
+        /// An <see cref="Action"/> delegate that references the method(s) to execute.
+        /// </param>
+        public static void Times(this int n, Action action)
+        {
+            if (n > 0 && action != null)
+                ((ulong)n).times(action);
         }
 
         internal static string ToExtensionString(
@@ -1516,6 +1572,228 @@
                      : value.IndexOfAny(chars) > -1;
         }
 
+
+        private static byte[] decompress(this byte[] data)
+        {
+            if (data.LongLength == 0)
+                return data;
+
+            using (var input = new MemoryStream(data))
+                return input.decompressToArray();
+        }
+
+        private static MemoryStream decompress(this Stream stream)
+        {
+            var output = new MemoryStream();
+            if (stream.Length == 0)
+                return output;
+
+            stream.Position = 0;
+            using (var ds = new DeflateStream(stream, CompressionMode.Decompress, true))
+            {
+                ds.CopyTo(output, 1024);
+                output.Position = 0;
+
+                return output;
+            }
+        }
+
+        private static byte[] compress(this byte[] data)
+        {
+            if (data.LongLength == 0)
+                //return new byte[] { 0x00, 0x00, 0x00, 0xff, 0xff };
+                return data;
+
+            using (var input = new MemoryStream(data))
+                return input.compressToArray();
+        }
+
+        private static readonly byte[] _last = new byte[] { 0x00 };
+
+        private static MemoryStream compress(this Stream stream)
+        {
+            var output = new MemoryStream();
+            if (stream.Length == 0)
+                return output;
+
+            stream.Position = 0;
+            using (var ds = new DeflateStream(output, CompressionMode.Compress, true))
+            {
+                stream.CopyTo(ds, 1024);
+                ds.Close(); // BFINAL set to 1.
+                output.Write(_last, 0, 1);
+                output.Position = 0;
+
+                return output;
+            }
+        }
+
+        internal static Stream Compress(this Stream stream, CompressionMethod method)
+        {
+            return method == CompressionMethod.Deflate
+                   ? stream.compress()
+                   : stream;
+        }
+
+        private static byte[] compressToArray(this Stream stream)
+        {
+            using (var output = stream.compress())
+            {
+                output.Close();
+                return output.ToArray();
+            }
+        }
+        internal static byte[] Compress(this byte[] data, CompressionMethod method)
+        {
+            return method == CompressionMethod.Deflate
+                   ? data.compress()
+                   : data;
+        }
+
+        private static byte[] decompressToArray(this Stream stream)
+        {
+            using (var output = stream.decompress())
+            {
+                output.Close();
+                return output.ToArray();
+            }
+        }
+
+
+        internal static byte[] Decompress(this byte[] data, CompressionMethod method)
+        {
+            return method == CompressionMethod.Deflate
+                   ? data.decompress()
+                   : data;
+        }
+
+        internal static Stream Decompress(this Stream stream, CompressionMethod method)
+        {
+            return method == CompressionMethod.Deflate
+                   ? stream.decompress()
+                   : stream;
+        }
+        internal static bool IsCompressionExtension(this string value, CompressionMethod method)
+        {
+            return value.StartsWith(method.ToExtensionString());
+        }
+
+        internal static byte[] ToByteArray(this Stream stream)
+        {
+            using (var output = new MemoryStream())
+            {
+                stream.Position = 0;
+                stream.CopyTo(output, 1024);
+                output.Close();
+
+                return output.ToArray();
+            }
+        }
+
+        internal static byte[] DecompressToArray(this Stream stream, CompressionMethod method)
+        {
+            return method == CompressionMethod.Deflate
+                   ? stream.decompressToArray()
+                   : stream.ToByteArray();
+        }
+
+        /// <summary>
+        /// Determines whether the specified <see cref="ushort"/> is in the allowable range of
+        /// the WebSocket close status code.
+        /// </summary>
+        /// <remarks>
+        /// Not allowable ranges are the following:
+        ///   <list type="bullet">
+        ///     <item>
+        ///       <term>
+        ///       Numbers in the range 0-999 are not used.
+        ///       </term>
+        ///     </item>
+        ///     <item>
+        ///       <term>
+        ///       Numbers greater than 4999 are out of the reserved close status code ranges.
+        ///       </term>
+        ///     </item>
+        ///   </list>
+        /// </remarks>
+        /// <returns>
+        /// <c>true</c> if <paramref name="value"/> is in the allowable range of the WebSocket
+        /// close status code; otherwise, <c>false</c>.
+        /// </returns>
+        /// <param name="value">
+        /// A <see cref="ushort"/> to test.
+        /// </param>
+        public static bool IsCloseStatusCode(this ushort value)
+        {
+            return value > 999 && value < 5000;
+        }
+        internal static string GetMessage(this CloseStatusCode code)
+        {
+            return code == CloseStatusCode.ProtocolError
+                   ? "A WebSocket protocol error has occurred."
+                   : code == CloseStatusCode.UnsupportedData
+                     ? "Unsupported data has been received."
+                     : code == CloseStatusCode.Abnormal
+                       ? "An exception has occurred."
+                       : code == CloseStatusCode.InvalidData
+                         ? "Invalid data has been received."
+                         : code == CloseStatusCode.PolicyViolation
+                           ? "A policy violation has occurred."
+                           : code == CloseStatusCode.TooBig
+                             ? "A too big message has been received."
+                             : code == CloseStatusCode.MandatoryExtension
+                               ? "WebSocket client didn't receive expected extension(s)."
+                               : code == CloseStatusCode.ServerError
+                                 ? "WebSocket server got an internal error."
+                                 : code == CloseStatusCode.TlsHandshakeFailure
+                                   ? "An error has occurred during a TLS handshake."
+                                   : String.Empty;
+        }
+
+        /// <summary>
+        /// Determines whether the specified <see cref="System.Net.IPAddress"/> represents
+        /// a local IP address.
+        /// </summary>
+        /// <remarks>
+        /// This local means NOT REMOTE for the current host.
+        /// </remarks>
+        /// <returns>
+        /// <c>true</c> if <paramref name="address"/> represents a local IP address;
+        /// otherwise, <c>false</c>.
+        /// </returns>
+        /// <param name="address">
+        /// A <see cref="System.Net.IPAddress"/> to test.
+        /// </param>
+        public static bool IsLocal(this System.Net.IPAddress address)
+        {
+            if (address == null)
+                return false;
+
+            if (address.Equals(System.Net.IPAddress.Any))
+                return true;
+
+            if (address.Equals(System.Net.IPAddress.Loopback))
+                return true;
+
+            if (Socket.OSSupportsIPv6)
+            {
+                if (address.Equals(System.Net.IPAddress.IPv6Any))
+                    return true;
+
+                if (address.Equals(System.Net.IPAddress.IPv6Loopback))
+                    return true;
+            }
+
+            var host = System.Net.Dns.GetHostName();
+            var addrs = System.Net.Dns.GetHostAddresses(host);
+            foreach (var addr in addrs)
+            {
+                if (address.Equals(addr))
+                    return true;
+            }
+
+            return false;
+        }
         #endregion
 #endif
     }
