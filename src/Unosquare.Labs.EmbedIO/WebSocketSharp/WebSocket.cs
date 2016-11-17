@@ -45,12 +45,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
@@ -58,7 +55,6 @@ using System.Threading;
 using Unosquare.Labs.EmbedIO;
 using Unosquare.Labs.EmbedIO.Log;
 using Unosquare.Labs.EmbedIO.WebSocketSharp;
-using WebSocketSharp.Net;
 using WebSocketSharp.Net.WebSockets;
 
 namespace WebSocketSharp
@@ -334,13 +330,7 @@ namespace WebSocketSharp
 
 #region Internal Properties
 
-        internal CookieCollection CookieCollection
-        {
-            get
-            {
-                return _cookies;
-            }
-        }
+        internal CookieCollection CookieCollection => _cookies;
 
         // As server
         internal Func<WebSocketContext, string> CustomHandshakeRequestChecker
@@ -379,17 +369,11 @@ namespace WebSocketSharp
             }
         }
 
-        internal bool IsConnected
-        {
-            get
-            {
-                return _readyState == WebSocketState.Open || _readyState == WebSocketState.Closing;
-            }
-        }
+        internal bool IsConnected => _readyState == WebSocketState.Open || _readyState == WebSocketState.Closing;
 
-#endregion
+        #endregion
 
-#region Public Properties
+        #region Public Properties
 
         /// <summary>
         /// Gets or sets the compression method used to compress a message on the WebSocket connection.
@@ -448,13 +432,7 @@ namespace WebSocketSharp
         /// A <see cref="NetworkCredential"/> that represents the credentials for
         /// the authentication. The default value is <see langword="null"/>.
         /// </value>
-        public NetworkCredential Credentials
-        {
-            get
-            {
-                return _credentials;
-            }
-        }
+        public NetworkCredential Credentials => _credentials;
 
         /// <summary>
         /// Gets or sets a value indicating whether the <see cref="WebSocket"/> emits
@@ -517,13 +495,7 @@ namespace WebSocketSharp
         /// A <see cref="string"/> that represents the extensions if any.
         /// The default value is <see cref="String.Empty"/>.
         /// </value>
-        public string Extensions
-        {
-            get
-            {
-                return _extensions ?? String.Empty;
-            }
-        }
+        public string Extensions => _extensions ?? String.Empty;
 
         /// <summary>
         /// Gets a value indicating whether the WebSocket connection is alive.
@@ -531,13 +503,7 @@ namespace WebSocketSharp
         /// <value>
         /// <c>true</c> if the connection is alive; otherwise, <c>false</c>.
         /// </value>
-        public bool IsAlive
-        {
-            get
-            {
-                return Ping();
-            }
-        }
+        public bool IsAlive => Ping();
 
         /// <summary>
         /// Gets a value indicating whether the WebSocket connection is secure.
@@ -545,13 +511,7 @@ namespace WebSocketSharp
         /// <value>
         /// <c>true</c> if the connection is secure; otherwise, <c>false</c>.
         /// </value>
-        public bool IsSecure
-        {
-            get
-            {
-                return _secure;
-            }
-        }
+        public bool IsSecure => _secure;
 
         /// <summary>
         /// Gets the logging functions.
@@ -662,13 +622,7 @@ namespace WebSocketSharp
         /// One of the <see cref="WebSocketState"/> enum values, indicates the state of the connection.
         /// The default value is <see cref="WebSocketState.Connecting"/>.
         /// </value>
-        public WebSocketState ReadyState
-        {
-            get
-            {
-                return _readyState;
-            }
-        }
+        public WebSocketState ReadyState => _readyState;
 
 #if SSL
         /// <summary>
@@ -2221,13 +2175,18 @@ namespace WebSocketSharp
                          : null;
         }
 
+        static bool IsCloseStatusCode(ushort value)
+        {
+            return value > 999 && value < 5000;
+        }
+
         internal static bool CheckParametersForClose(
           ushort code, string reason, bool client, out string message
         )
         {
             message = null;
 
-            if (!code.IsCloseStatusCode())
+            if (!IsCloseStatusCode(code))
             {
                 message = "'code' is an invalid status code.";
                 return false;
@@ -3429,9 +3388,7 @@ namespace WebSocketSharp
                 }
 
                 _proxyCredentials =
-                  new NetworkCredential(
-                    username, password, String.Format("{0}:{1}", _uri.DnsSafeHost, _uri.Port)
-                  );
+                  new NetworkCredential(username, password, string.Format("{0}:{1}", _uri.DnsSafeHost, _uri.Port));
             }
         }
 

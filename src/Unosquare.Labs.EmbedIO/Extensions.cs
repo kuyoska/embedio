@@ -14,7 +14,6 @@
     using WebSocketSharp;
     using System.Collections.Specialized;
     using global::WebSocketSharp;
-    using System.Net.Sockets;
 #endif
 
 #if NET452
@@ -1242,11 +1241,33 @@
             return true;
         }
 
+        internal static bool ContainsTwice(string[] values)
+        {
+            var len = values.Length;
+
+            Func<int, bool> contains = null;
+            contains = idx =>
+            {
+                if (idx < len - 1)
+                {
+                    for (var i = idx + 1; i < len; i++)
+                        if (values[i] == values[idx])
+                            return true;
+
+                    return contains(++idx);
+                }
+
+                return false;
+            };
+
+            return contains(0);
+        }
+
         internal static string CheckIfValidProtocols(this string[] protocols)
         {
             return protocols.Any(protocol => protocol == null || protocol.Length == 0 || !protocol.IsToken())
                    ? "Contains an invalid value."
-                   : protocols.ContainsTwice()
+                   : ContainsTwice(protocols)
                      ? "Contains a value twice."
                      : null;
         }
@@ -1271,107 +1292,7 @@
                    ? CookieCollectionParser.Parse(headers[name], response)
                    : new CookieCollection();
         }
-
-        /// <summary>
-        /// Gets the description of the specified HTTP status <paramref name="code"/>.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="string"/> that represents the description of the HTTP status code.
-        /// </returns>
-        /// <param name="code">
-        /// One of <see cref="HttpStatusCode"/> enum values, indicates the HTTP status code.
-        /// </param>
-        public static string GetDescription(this HttpStatusCode code)
-        {
-            return ((int)code).GetStatusDescription();
-        }
-
-        /// <summary>
-        /// Gets the description of the specified HTTP status <paramref name="code"/>.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="string"/> that represents the description of the HTTP status code.
-        /// </returns>
-        /// <param name="code">
-        /// An <see cref="int"/> that represents the HTTP status code.
-        /// </param>
-        public static string GetStatusDescription(this int code)
-        {
-            switch (code)
-            {
-                case 100: return "Continue";
-                case 101: return "Switching Protocols";
-                case 102: return "Processing";
-                case 200: return "OK";
-                case 201: return "Created";
-                case 202: return "Accepted";
-                case 203: return "Non-Authoritative Information";
-                case 204: return "No Content";
-                case 205: return "Reset Content";
-                case 206: return "Partial Content";
-                case 207: return "Multi-Status";
-                case 300: return "Multiple Choices";
-                case 301: return "Moved Permanently";
-                case 302: return "Found";
-                case 303: return "See Other";
-                case 304: return "Not Modified";
-                case 305: return "Use Proxy";
-                case 307: return "Temporary Redirect";
-                case 400: return "Bad Request";
-                case 401: return "Unauthorized";
-                case 402: return "Payment Required";
-                case 403: return "Forbidden";
-                case 404: return "Not Found";
-                case 405: return "Method Not Allowed";
-                case 406: return "Not Acceptable";
-                case 407: return "Proxy Authentication Required";
-                case 408: return "Request Timeout";
-                case 409: return "Conflict";
-                case 410: return "Gone";
-                case 411: return "Length Required";
-                case 412: return "Precondition Failed";
-                case 413: return "Request Entity Too Large";
-                case 414: return "Request-Uri Too Long";
-                case 415: return "Unsupported Media Type";
-                case 416: return "Requested Range Not Satisfiable";
-                case 417: return "Expectation Failed";
-                case 422: return "Unprocessable Entity";
-                case 423: return "Locked";
-                case 424: return "Failed Dependency";
-                case 500: return "Internal Server Error";
-                case 501: return "Not Implemented";
-                case 502: return "Bad Gateway";
-                case 503: return "Service Unavailable";
-                case 504: return "Gateway Timeout";
-                case 505: return "Http Version Not Supported";
-                case 507: return "Insufficient Storage";
-            }
-
-            return String.Empty;
-        }
-
-        internal static bool ContainsTwice(this string[] values)
-        {
-            var len = values.Length;
-
-            Func<int, bool> contains = null;
-            contains = idx =>
-            {
-                if (idx < len - 1)
-                {
-                    for (var i = idx + 1; i < len; i++)
-                        if (values[i] == values[idx])
-                            return true;
-
-                    return contains(++idx);
-                }
-
-                return false;
-            };
-
-            return contains(0);
-        }
-
+        
         internal static bool CheckWaitTime(this TimeSpan time, out string message)
         {
             message = null;
@@ -1442,43 +1363,13 @@
                 for (int i = 0; i < n; i++)
                     action(i);
         }
-
-        /// <summary>
-        /// Executes the specified <see cref="Action"/> delegate <paramref name="n"/> times.
-        /// </summary>
-        /// <param name="n">
-        /// A <see cref="long"/> is the number of times to execute.
-        /// </param>
-        /// <param name="action">
-        /// An <see cref="Action"/> delegate that references the method(s) to execute.
-        /// </param>
-        public static void Times(this long n, Action action)
-        {
-            if (n > 0 && action != null)
-                ((ulong)n).times(action);
-        }
-
+        
         private static void times(this ulong n, Action action)
         {
             for (ulong i = 0; i < n; i++)
                 action();
         }
-
-        /// <summary>
-        /// Executes the specified <see cref="Action"/> delegate <paramref name="n"/> times.
-        /// </summary>
-        /// <param name="n">
-        /// An <see cref="int"/> is the number of times to execute.
-        /// </param>
-        /// <param name="action">
-        /// An <see cref="Action"/> delegate that references the method(s) to execute.
-        /// </param>
-        public static void Times(this int n, Action action)
-        {
-            if (n > 0 && action != null)
-                ((ulong)n).times(action);
-        }
-
+        
         internal static string ToExtensionString(
       this CompressionMethod method, params string[] parameters)
         {
@@ -1695,105 +1586,7 @@
                    ? stream.decompressToArray()
                    : stream.ToByteArray();
         }
-
-        /// <summary>
-        /// Determines whether the specified <see cref="ushort"/> is in the allowable range of
-        /// the WebSocket close status code.
-        /// </summary>
-        /// <remarks>
-        /// Not allowable ranges are the following:
-        ///   <list type="bullet">
-        ///     <item>
-        ///       <term>
-        ///       Numbers in the range 0-999 are not used.
-        ///       </term>
-        ///     </item>
-        ///     <item>
-        ///       <term>
-        ///       Numbers greater than 4999 are out of the reserved close status code ranges.
-        ///       </term>
-        ///     </item>
-        ///   </list>
-        /// </remarks>
-        /// <returns>
-        /// <c>true</c> if <paramref name="value"/> is in the allowable range of the WebSocket
-        /// close status code; otherwise, <c>false</c>.
-        /// </returns>
-        /// <param name="value">
-        /// A <see cref="ushort"/> to test.
-        /// </param>
-        public static bool IsCloseStatusCode(this ushort value)
-        {
-            return value > 999 && value < 5000;
-        }
-        internal static string GetMessage(this CloseStatusCode code)
-        {
-            return code == CloseStatusCode.ProtocolError
-                   ? "A WebSocket protocol error has occurred."
-                   : code == CloseStatusCode.UnsupportedData
-                     ? "Unsupported data has been received."
-                     : code == CloseStatusCode.Abnormal
-                       ? "An exception has occurred."
-                       : code == CloseStatusCode.InvalidData
-                         ? "Invalid data has been received."
-                         : code == CloseStatusCode.PolicyViolation
-                           ? "A policy violation has occurred."
-                           : code == CloseStatusCode.TooBig
-                             ? "A too big message has been received."
-                             : code == CloseStatusCode.MandatoryExtension
-                               ? "WebSocket client didn't receive expected extension(s)."
-                               : code == CloseStatusCode.ServerError
-                                 ? "WebSocket server got an internal error."
-                                 : code == CloseStatusCode.TlsHandshakeFailure
-                                   ? "An error has occurred during a TLS handshake."
-                                   : String.Empty;
-        }
-
-        /// <summary>
-        /// Determines whether the specified <see cref="IPAddress"/> represents
-        /// a local IP address.
-        /// </summary>
-        /// <remarks>
-        /// This local means NOT REMOTE for the current host.
-        /// </remarks>
-        /// <returns>
-        /// <c>true</c> if <paramref name="address"/> represents a local IP address;
-        /// otherwise, <c>false</c>.
-        /// </returns>
-        /// <param name="address">
-        /// A <see cref="IPAddress"/> to test.
-        /// </param>
-        public static bool IsLocal(this IPAddress address)
-        {
-            if (address == null)
-                return false;
-
-            if (address.Equals(System.Net.IPAddress.Any))
-                return true;
-
-            if (address.Equals(System.Net.IPAddress.Loopback))
-                return true;
-
-            if (Socket.OSSupportsIPv6)
-            {
-                if (address.Equals(IPAddress.IPv6Any))
-                    return true;
-
-                if (address.Equals(System.Net.IPAddress.IPv6Loopback))
-                    return true;
-            }
-
-            var host = Dns.GetHostName();
-            var addrs = Dns.GetHostAddresses(host);
-            foreach (var addr in addrs)
-            {
-                if (address.Equals(addr))
-                    return true;
-            }
-
-            return false;
-        }
-
+        
         #endregion
 #endif
     }

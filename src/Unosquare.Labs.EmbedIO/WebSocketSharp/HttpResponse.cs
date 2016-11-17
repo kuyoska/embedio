@@ -59,7 +59,7 @@ namespace WebSocketSharp
         #region Internal Constructors
 
         internal HttpResponse(HttpStatusCode code)
-          : this(code, code.GetDescription())
+          : this(code, GetStatusDescription((int)code))
         {
         }
 
@@ -89,29 +89,11 @@ namespace WebSocketSharp
             }
         }
 
-        public bool IsProxyAuthenticationRequired
-        {
-            get
-            {
-                return _code == "407";
-            }
-        }
+        public bool IsProxyAuthenticationRequired => _code == "407";
 
-        public bool IsRedirect
-        {
-            get
-            {
-                return _code == "301" || _code == "302";
-            }
-        }
+        public bool IsRedirect => _code == "301" || _code == "302";
 
-        public bool IsUnauthorized
-        {
-            get
-            {
-                return _code == "401";
-            }
-        }
+        public bool IsUnauthorized => _code == "401";
 
         public bool IsWebSocketResponse
         {
@@ -125,25 +107,77 @@ namespace WebSocketSharp
             }
         }
 
-        public string Reason
-        {
-            get
-            {
-                return _reason;
-            }
-        }
+        public string Reason => _reason;
 
-        public string StatusCode
-        {
-            get
-            {
-                return _code;
-            }
-        }
+        public string StatusCode => _code;
 
         #endregion
 
         #region Internal Methods
+
+        /// <summary>
+        /// Gets the description of the specified HTTP status <paramref name="code"/>.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="string"/> that represents the description of the HTTP status code.
+        /// </returns>
+        /// <param name="code">
+        /// An <see cref="int"/> that represents the HTTP status code.
+        /// </param>
+        public static string GetStatusDescription(int code)
+        {
+            switch (code)
+            {
+                case 100: return "Continue";
+                case 101: return "Switching Protocols";
+                case 102: return "Processing";
+                case 200: return "OK";
+                case 201: return "Created";
+                case 202: return "Accepted";
+                case 203: return "Non-Authoritative Information";
+                case 204: return "No Content";
+                case 205: return "Reset Content";
+                case 206: return "Partial Content";
+                case 207: return "Multi-Status";
+                case 300: return "Multiple Choices";
+                case 301: return "Moved Permanently";
+                case 302: return "Found";
+                case 303: return "See Other";
+                case 304: return "Not Modified";
+                case 305: return "Use Proxy";
+                case 307: return "Temporary Redirect";
+                case 400: return "Bad Request";
+                case 401: return "Unauthorized";
+                case 402: return "Payment Required";
+                case 403: return "Forbidden";
+                case 404: return "Not Found";
+                case 405: return "Method Not Allowed";
+                case 406: return "Not Acceptable";
+                case 407: return "Proxy Authentication Required";
+                case 408: return "Request Timeout";
+                case 409: return "Conflict";
+                case 410: return "Gone";
+                case 411: return "Length Required";
+                case 412: return "Precondition Failed";
+                case 413: return "Request Entity Too Large";
+                case 414: return "Request-Uri Too Long";
+                case 415: return "Unsupported Media Type";
+                case 416: return "Requested Range Not Satisfiable";
+                case 417: return "Expectation Failed";
+                case 422: return "Unprocessable Entity";
+                case 423: return "Locked";
+                case 424: return "Failed Dependency";
+                case 500: return "Internal Server Error";
+                case 501: return "Not Implemented";
+                case 502: return "Bad Gateway";
+                case 503: return "Service Unavailable";
+                case 504: return "Gateway Timeout";
+                case 505: return "Http Version Not Supported";
+                case 507: return "Insufficient Storage";
+            }
+
+            return string.Empty;
+        }
 
         internal static HttpResponse CreateCloseResponse(HttpStatusCode code)
         {
@@ -199,6 +233,10 @@ namespace WebSocketSharp
 
         #region Public Methods
 
+        /// <summary>
+        /// Sets the cookies.
+        /// </summary>
+        /// <param name="cookies">The cookies.</param>
         public void SetCookies(CookieCollection cookies)
         {
             if (cookies == null || cookies.Count == 0)
@@ -210,6 +248,12 @@ namespace WebSocketSharp
                 headers.Add("Set-Cookie", cookie.ToString()); //.ToResponseString ());
         }
 
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
         public override string ToString()
         {
             var output = new StringBuilder(64);

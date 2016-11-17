@@ -179,7 +179,7 @@ namespace WebSocketSharp.Net.WebSockets
         /// <value>
         /// <c>true</c> if the client connected from the local computer; otherwise, <c>false</c>.
         /// </value>
-        public override bool IsLocal => UserEndPoint.Address.IsLocal();
+        public override bool IsLocal => IsIPAddressLocal(UserEndPoint.Address);
 
         /// <summary>
         /// Gets a value indicating whether the WebSocket connection is secured.
@@ -444,7 +444,7 @@ namespace WebSocketSharp.Net.WebSockets
             _websocket.Close(HttpResponse.CreateCloseResponse(code));
         }
 
-        #if AUTHENTICATION
+#if AUTHENTICATION
         internal void SendAuthenticationChallenge(string challenge)
         {
             var buff = HttpResponse.CreateUnauthorizedResponse(challenge).ToByteArray();
@@ -452,10 +452,42 @@ namespace WebSocketSharp.Net.WebSockets
             _request = HttpRequest.Read(_stream, 15000);
         }
 #endif
+        
+        internal bool IsIPAddressLocal(IPAddress address)
+        {
+            if (address == null)
+                return false;
 
-#endregion
+            if (address.Equals(IPAddress.Any))
+                return true;
 
-#region Public Methods
+            if (address.Equals(IPAddress.Loopback))
+                return true;
+
+            if (Socket.OSSupportsIPv6)
+            {
+                if (address.Equals(IPAddress.IPv6Any))
+                    return true;
+
+                if (address.Equals(IPAddress.IPv6Loopback))
+                    return true;
+            }
+
+            var host = Dns.GetHostName();
+            var addrs = Dns.GetHostAddresses(host);
+            foreach (var addr in addrs)
+            {
+                if (address.Equals(addr))
+                    return true;
+            }
+
+            return false;
+        }
+
+
+        #endregion
+
+        #region Public Methods
 
         /// <summary>
         /// Returns a <see cref="string"/> that represents

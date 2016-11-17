@@ -85,13 +85,7 @@ namespace WebSocketSharp
         /// <see cref="Opcode.Text"/>, <see cref="Opcode.Binary"/>,
         /// or <see cref="Opcode.Ping"/>.
         /// </value>
-        internal Opcode Opcode
-        {
-            get
-            {
-                return _opcode;
-            }
-        }
+        internal Opcode Opcode => _opcode;
 
         #endregion
 
@@ -120,13 +114,7 @@ namespace WebSocketSharp
         /// <value>
         /// <c>true</c> if the message type is binary; otherwise, <c>false</c>.
         /// </value>
-        public bool IsBinary
-        {
-            get
-            {
-                return _opcode == Opcode.Binary;
-            }
-        }
+        public bool IsBinary => _opcode == Opcode.Binary;
 
         /// <summary>
         /// Gets a value indicating whether the message type is ping.
@@ -134,13 +122,7 @@ namespace WebSocketSharp
         /// <value>
         /// <c>true</c> if the message type is ping; otherwise, <c>false</c>.
         /// </value>
-        public bool IsPing
-        {
-            get
-            {
-                return _opcode == Opcode.Ping;
-            }
-        }
+        public bool IsPing => _opcode == Opcode.Ping;
 
         /// <summary>
         /// Gets a value indicating whether the message type is text.
@@ -148,13 +130,7 @@ namespace WebSocketSharp
         /// <value>
         /// <c>true</c> if the message type is text; otherwise, <c>false</c>.
         /// </value>
-        public bool IsText
-        {
-            get
-            {
-                return _opcode == Opcode.Text;
-            }
-        }
+        public bool IsText => _opcode == Opcode.Text;
 
         /// <summary>
         /// Gets the message data as an array of <see cref="byte"/>.

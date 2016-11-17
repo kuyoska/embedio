@@ -28,7 +28,6 @@
 #endregion
 
 using System;
-using Unosquare.Labs.EmbedIO;
 
 namespace WebSocketSharp
 {
@@ -81,23 +80,45 @@ namespace WebSocketSharp
     }
 
     internal WebSocketException (CloseStatusCode code, string message, Exception innerException)
-      : base (message ?? code.GetMessage (), innerException)
+      : base (message ?? GetMessage(code), innerException)
     {
       _code = code;
     }
 
-#endregion
+        internal static string GetMessage(CloseStatusCode code)
+        {
+            return code == CloseStatusCode.ProtocolError
+                   ? "A WebSocket protocol error has occurred."
+                   : code == CloseStatusCode.UnsupportedData
+                     ? "Unsupported data has been received."
+                     : code == CloseStatusCode.Abnormal
+                       ? "An exception has occurred."
+                       : code == CloseStatusCode.InvalidData
+                         ? "Invalid data has been received."
+                         : code == CloseStatusCode.PolicyViolation
+                           ? "A policy violation has occurred."
+                           : code == CloseStatusCode.TooBig
+                             ? "A too big message has been received."
+                             : code == CloseStatusCode.MandatoryExtension
+                               ? "WebSocket client didn't receive expected extension(s)."
+                               : code == CloseStatusCode.ServerError
+                                 ? "WebSocket server got an internal error."
+                                 : code == CloseStatusCode.TlsHandshakeFailure
+                                   ? "An error has occurred during a TLS handshake."
+                                   : String.Empty;
+        }
+        #endregion
 
-#region Public Properties
+        #region Public Properties
 
-    /// <summary>
-    /// Gets the status code indicating the cause of the exception.
-    /// </summary>
-    /// <value>
-    /// One of the <see cref="CloseStatusCode"/> enum values, represents the status code
-    /// indicating the cause of the exception.
-    /// </value>
-    public CloseStatusCode Code {
+        /// <summary>
+        /// Gets the status code indicating the cause of the exception.
+        /// </summary>
+        /// <value>
+        /// One of the <see cref="CloseStatusCode"/> enum values, represents the status code
+        /// indicating the cause of the exception.
+        /// </value>
+        public CloseStatusCode Code {
       get {
         return _code;
       }

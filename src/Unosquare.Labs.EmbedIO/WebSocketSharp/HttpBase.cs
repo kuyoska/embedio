@@ -89,21 +89,9 @@ namespace WebSocketSharp
             }
         }
 
-        public NameValueCollection Headers
-        {
-            get
-            {
-                return _headers;
-            }
-        }
+        public NameValueCollection Headers => _headers;
 
-        public Version ProtocolVersion
-        {
-            get
-            {
-                return _version;
-            }
-        }
+        public Version ProtocolVersion => _version;
 
         #endregion
 
