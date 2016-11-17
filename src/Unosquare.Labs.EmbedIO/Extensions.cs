@@ -1751,7 +1751,7 @@
         }
 
         /// <summary>
-        /// Determines whether the specified <see cref="System.Net.IPAddress"/> represents
+        /// Determines whether the specified <see cref="IPAddress"/> represents
         /// a local IP address.
         /// </summary>
         /// <remarks>
@@ -1762,9 +1762,9 @@
         /// otherwise, <c>false</c>.
         /// </returns>
         /// <param name="address">
-        /// A <see cref="System.Net.IPAddress"/> to test.
+        /// A <see cref="IPAddress"/> to test.
         /// </param>
-        public static bool IsLocal(this System.Net.IPAddress address)
+        public static bool IsLocal(this IPAddress address)
         {
             if (address == null)
                 return false;
@@ -1777,15 +1777,15 @@
 
             if (Socket.OSSupportsIPv6)
             {
-                if (address.Equals(System.Net.IPAddress.IPv6Any))
+                if (address.Equals(IPAddress.IPv6Any))
                     return true;
 
                 if (address.Equals(System.Net.IPAddress.IPv6Loopback))
                     return true;
             }
 
-            var host = System.Net.Dns.GetHostName();
-            var addrs = System.Net.Dns.GetHostAddresses(host);
+            var host = Dns.GetHostName();
+            var addrs = Dns.GetHostAddresses(host);
             foreach (var addr in addrs)
             {
                 if (address.Equals(addr))
@@ -1793,6 +1793,12 @@
             }
 
             return false;
+        }
+
+        internal static string TrimEndSlash(this string value)
+        {
+            value = value.TrimEnd('/');
+            return value.Length > 0 ? value : "/";
         }
         #endregion
 #endif
