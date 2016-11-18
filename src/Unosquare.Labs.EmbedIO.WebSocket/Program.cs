@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Unosquare.Labs.EmbedIO.Modules;
 using WebSocketSharp;
 using WebSocketSharp.Server;
@@ -27,12 +24,18 @@ namespace Unosquare.Labs.EmbedIO.WebSocket
         {
             Console.WriteLine("Unosquare.Labs.EmbedIO Web Server");
 
-            var socketServer = new WebSocketServer(8080, new Log.SimpleConsoleLog());
+            var logger = new Log.SimpleConsoleLog();
+
+            var server = new WebServer("http://localhost:8081", logger);
+            server.WithStaticFolderAt("wwwroot");
+
+            var socketServer = new WebSocketServer(8080, logger);
             socketServer.AddWebSocketService<EchoServer>("/echo");
 
             var cts = new CancellationTokenSource();
 
             socketServer.RunAsync(cts.Token);
+            server.RunAsync(cts.Token);
 
             while (true)
             {

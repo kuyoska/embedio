@@ -150,7 +150,7 @@ namespace WebSocketSharp.Server
         /// <c>true</c> if the WebSocket service ignores the extensions requested from
         /// a client; otherwise, <c>false</c>. The default value is <c>false</c>.
         /// </value>
-        public bool IgnoreExtensions { get; set; }
+        public bool IgnoreExtensions { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the delegate called to validate the Origin header included in

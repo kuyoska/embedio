@@ -1,0 +1,47 @@
+﻿<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EmbedIO Websocket</title>
+    <script src="https://cdn.jsdelivr.net/g/jquery"></script>
+</head>
+<body>
+<h1>WebSocket Test</h1>
+<input type="text" id="entry" /><button id="entryButton">Echo</button>
+<div id="entries" style="height: 400px; overflow: auto; border-width: 1px; border-style: solid; border-color: #ccc;">
+</div>
+<script>
+    $(function() {
+        var me = this;
+
+        me.addMessage = function(m) {
+            $('#entries').append('<blockquote>' + m + '</blockquote>');
+        };
+
+        me.websocket = new WebSocket("ws://localhost:8080/echo");
+        me.websocket.onopen = function (evt) {
+            me.addMessage('WebSockets connection opened.');
+        };
+
+        me.websocket.onclose = function (evt) {
+            me.addMessage('WebSockets connection closed.');
+        };
+
+        me.websocket.onmessage = function (evt) {
+            me.addMessage("TX " + evt.data);
+        };
+
+        me.websocket.onerror = function (evt) {
+            me.addMessage("Error:" + evt.data);
+        };
+
+        $("#entryButton").click(function () {
+            me.addMessage("RX " + $("#entry").val());
+            me.websocket.send($("#entry").val());
+            $("#entry").val("");
+        });
+    });
+</script>
+</body>
+</html>

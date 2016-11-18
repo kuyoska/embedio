@@ -102,10 +102,8 @@ namespace Unosquare.Labs.EmbedIO
             if (_listenerTask != null)
                 throw new InvalidOperationException("The method was already called.");
 
-            /* TODO: Resuse?
-             * if (_reuseAddress)
-        _listener.Server.SetSocketOption (
-          SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);*/
+            // TODO: Resuse?
+            //Listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
             Listener.Start();
 
