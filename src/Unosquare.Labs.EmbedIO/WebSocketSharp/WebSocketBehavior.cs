@@ -118,7 +118,7 @@ namespace WebSocketSharp.Server
         {
             get
             {
-                return _websocket != null ? _websocket.EmitOnPing : _emitOnPing;
+                return _websocket?.EmitOnPing ?? _emitOnPing;
             }
 
             set
@@ -230,13 +230,13 @@ namespace WebSocketSharp.Server
         /// One of the <see cref="WebSocketState"/> enum values, indicates the state of
         /// the <see cref="WebSocket"/>.
         /// </value>
-        public WebSocketState State => _websocket != null ? _websocket.ReadyState : WebSocketState.Connecting;
+        public WebSocketState State => _websocket?.ReadyState ?? WebSocketState.Connecting;
 
         #endregion
 
         #region Private Methods
 
-        private string checkHandshakeRequest(WebSocketContext context)
+        private string CheckHandshakeRequest(WebSocketContext context)
         {
             return OriginValidator != null && !OriginValidator(context.Origin)
              ? "Includes no Origin header, or it has an invalid value."
@@ -254,17 +254,7 @@ namespace WebSocketSharp.Server
             Sessions.Remove(ID);
             OnClose(e);
         }
-
-        private void onError(object sender, ErrorEventArgs e)
-        {
-            OnError(e);
-        }
-
-        private void onMessage(object sender, MessageEventArgs e)
-        {
-            OnMessage(e);
-        }
-
+        
         private void onOpen(object sender, EventArgs e)
         {
             ID = Sessions.Add(this);
@@ -297,7 +287,7 @@ namespace WebSocketSharp.Server
             Sessions.Start();
 
             _websocket = context.WebSocket;
-            _websocket.CustomHandshakeRequestChecker = checkHandshakeRequest;
+            _websocket.CustomHandshakeRequestChecker = CheckHandshakeRequest;
             _websocket.EmitOnPing = _emitOnPing;
             _websocket.IgnoreExtensions = IgnoreExtensions;
             _websocket.Protocol = _protocol;
@@ -307,8 +297,8 @@ namespace WebSocketSharp.Server
                 _websocket.WaitTime = waitTime;
 
             _websocket.OnOpen += onOpen;
-            _websocket.OnMessage += onMessage;
-            _websocket.OnError += onError;
+            _websocket.OnMessage += (s,e) => OnMessage(e);
+            _websocket.OnError += (s,e) => OnError(e);
             _websocket.OnClose += onClose;
 
             _websocket.InternalAccept();
@@ -334,7 +324,7 @@ namespace WebSocketSharp.Server
         /// </param>
         protected void Error(string message, Exception exception)
         {
-            if (message != null && message.Length > 0)
+            if (!string.IsNullOrEmpty(message))
                 OnError(new ErrorEventArgs(exception));
         }
 
@@ -389,8 +379,7 @@ namespace WebSocketSharp.Server
         /// </param>
         protected void Send(byte[] data)
         {
-            if (_websocket != null)
-                _websocket.Send(data);
+            _websocket?.Send(data);
         }
 
         /// <summary>
@@ -404,8 +393,7 @@ namespace WebSocketSharp.Server
         /// </param>
         protected void Send(FileInfo file)
         {
-            if (_websocket != null)
-                _websocket.Send(file);
+            _websocket?.Send(file);
         }
 
         /// <summary>
@@ -419,8 +407,7 @@ namespace WebSocketSharp.Server
         /// </param>
         protected void Send(string data)
         {
-            if (_websocket != null)
-                _websocket.Send(data);
+            _websocket?.Send(data);
         }
 
         /// <summary>
@@ -444,8 +431,7 @@ namespace WebSocketSharp.Server
         /// </param>
         protected void SendAsync(byte[] data, Action<bool> completed)
         {
-            if (_websocket != null)
-                _websocket.SendAsync(data, completed);
+            _websocket?.SendAsync(data, completed);
         }
 
         /// <summary>
@@ -470,8 +456,7 @@ namespace WebSocketSharp.Server
         /// </param>
         protected void SendAsync(FileInfo file, Action<bool> completed)
         {
-            if (_websocket != null)
-                _websocket.SendAsync(file, completed);
+            _websocket?.SendAsync(file, completed);
         }
 
         /// <summary>
@@ -495,8 +480,7 @@ namespace WebSocketSharp.Server
         /// </param>
         protected void SendAsync(string data, Action<bool> completed)
         {
-            if (_websocket != null)
-                _websocket.SendAsync(data, completed);
+            _websocket?.SendAsync(data, completed);
         }
 
         /// <summary>
@@ -524,8 +508,7 @@ namespace WebSocketSharp.Server
         /// </param>
         protected void SendAsync(Stream stream, int length, Action<bool> completed)
         {
-            if (_websocket != null)
-                _websocket.SendAsync(stream, length, completed);
+            _websocket?.SendAsync(stream, length, completed);
         }
 
         #endregion

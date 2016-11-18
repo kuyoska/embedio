@@ -196,7 +196,7 @@ namespace WebSocketSharp
         private bool _preAuth;
 #endif
         private string _protocol;
-        private string[] _protocols;
+        private readonly string[] _protocols;
         private bool _protocolsRequested;
         private NetworkCredential _proxyCredentials;
         private Uri _proxyUri;
@@ -1309,7 +1309,7 @@ namespace WebSocketSharp
             {
                 try
                 {
-                    OnMessage(this, e);
+                    OnMessage?.Invoke(this, e);
                 }
                 catch (Exception ex)
                 {
@@ -1334,7 +1334,7 @@ namespace WebSocketSharp
         {
             try
             {
-                OnMessage(this, e);
+                OnMessage?.Invoke(this, e);
             }
             catch (Exception ex)
             {
@@ -1362,7 +1362,7 @@ namespace WebSocketSharp
             StartReceiving();
             try
             {
-                OnOpen(this, EventArgs.Empty);
+                OnOpen?.Invoke(this, EventArgs.Empty);
             }
             catch (Exception ex)
             {
@@ -1445,6 +1445,7 @@ namespace WebSocketSharp
             }
 
             _fragmentsBuffer.WriteBytes(frame.PayloadData.ApplicationData, 1024);
+
             if (frame.IsFinal)
             {
                 using (_fragmentsBuffer)
@@ -1568,17 +1569,11 @@ namespace WebSocketSharp
         // As client
         private void ReleaseClientResources()
         {
-            if (_stream != null)
-            {
-                _stream.Dispose();
-                _stream = null;
-            }
+            _stream?.Dispose();
+            _stream = null;
 
-            if (_tcpClient != null)
-            {
-                _tcpClient.Close();
-                _tcpClient = null;
-            }
+            _tcpClient?.Close();
+            _tcpClient = null;
         }
 
         private void ReleaseCommonResources()
@@ -1747,8 +1742,7 @@ namespace WebSocketSharp
                     try
                     {
                         var sent = sender.EndInvoke(ar);
-                        if (completed != null)
-                            completed(sent);
+                        completed?.Invoke(sent);
                     }
                     catch (Exception ex)
                     {
@@ -1821,6 +1815,7 @@ namespace WebSocketSharp
             {
                 var url = res.Headers["Location"];
                 _logger.WarnFormat("Received a redirection to '{0}'.", url);
+
                 if (_enableRedirection)
                 {
                     if (string.IsNullOrEmpty(url))
@@ -1975,9 +1970,7 @@ namespace WebSocketSharp
                         {
                             if (!ProcessReceivedFrame(frame) || _readyState == WebSocketState.Closed)
                             {
-                                var exit = _exitReceiving;
-                                if (exit != null)
-                                    exit.Set();
+                                _exitReceiving?.Set();
 
                                 return;
                             }
@@ -2056,14 +2049,13 @@ namespace WebSocketSharp
 
             return true;
         }
-
+        
+        
         // As server
         private bool ValidateSecWebSocketKeyHeader(string value)
         {
             return value != null && value.Length > 0;
         }
-
-        // As server
         private bool ValidateSecWebSocketProtocolClientHeader(string value)
         {
             return value == null || value.Length > 0;
@@ -2082,13 +2074,13 @@ namespace WebSocketSharp
         }
 
         // As server
-        private bool ValidateSecWebSocketVersionClientHeader(string value)
+        private static bool ValidateSecWebSocketVersionClientHeader(string value)
         {
             return value != null && value == Version;
         }
 
         // As client
-        private bool ValidateSecWebSocketVersionServerHeader(string value)
+        private static bool ValidateSecWebSocketVersionServerHeader(string value)
         {
             return value == null || value == Version;
         }
@@ -2110,7 +2102,7 @@ namespace WebSocketSharp
                             : null;
         }
 
-        static bool IsCloseStatusCode(ushort value)
+        private static bool IsCloseStatusCode(ushort value)
         {
             return value > 999 && value < 5000;
         }
@@ -2261,9 +2253,10 @@ namespace WebSocketSharp
             ReleaseCommonResources();
 
             _readyState = WebSocketState.Closed;
+
             try
             {
-                OnClose(this, e);
+                OnClose?.Invoke(this, e);
             }
             catch (Exception ex)
             {
@@ -2313,17 +2306,10 @@ namespace WebSocketSharp
 
         internal bool Ping(byte[] frameAsBytes, TimeSpan timeout)
         {
-            if (_readyState != WebSocketState.Open)
+            if (_readyState != WebSocketState.Open || !send(frameAsBytes))
                 return false;
-
-            if (!send(frameAsBytes))
-                return false;
-
-            var receivePong = _receivePong;
-            if (receivePong == null)
-                return false;
-
-            return receivePong.WaitOne(timeout);
+            
+            return _receivePong != null && _receivePong.WaitOne(timeout);
         }
 
         // As server, used to broadcast

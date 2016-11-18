@@ -915,18 +915,15 @@ namespace WebSocketSharp.Server
         public bool TryGetSession(string id, out IWebSocketSession session)
         {
             var msg = CheckIfAvailable(_state, false, true, false) ?? CheckIfValidSessionId(id);
-            if (msg != null)
-            {
-                _logger.Error(msg);
-                session = null;
+            if (msg == null) return tryGetSession(id, out session);
 
-                return false;
-            }
+            _logger.Error(msg);
+            session = null;
 
-            return tryGetSession(id, out session);
+            return false;
         }
 
-        string CheckIfValidSessionId(string id)
+        private string CheckIfValidSessionId(string id)
         {
             return string.IsNullOrEmpty(id) ? $"'{nameof(id)}' is null or empty." : null;
         }

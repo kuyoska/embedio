@@ -13,7 +13,6 @@ namespace Unosquare.Labs.EmbedIO.Modules
     /// <summary>
     /// A WebSockets module conforming to RFC 6455
     /// Works only on Chrome 16+, FireFox 11+ and IE 10+
-    /// This module is experimental and still needs extensive testing.
     /// </summary>
     public class WebSocketsModule : WebModuleBase
     {
@@ -28,7 +27,7 @@ namespace Unosquare.Labs.EmbedIO.Modules
         /// </summary>
         public WebSocketsModule()
         {
-            this.AddHandler(ModuleMap.AnyPath, HttpVerbs.Any, (server, context) =>
+            AddHandler(ModuleMap.AnyPath, HttpVerbs.Any, (server, context) =>
             {
                 // check if it is a WebSocket request (this only works with Win8 and Windows 2012)
                 if (context.Request.IsWebSocketRequest() == false)
@@ -83,7 +82,7 @@ namespace Unosquare.Labs.EmbedIO.Modules
                 throw new ArgumentException("Argument 'socketType' needs a WebSocketHandlerAttribute",
                     nameof(socketType));
 
-            this._serverMap[attribute.Path] = (WebSocketsServer) Activator.CreateInstance(socketType);
+            _serverMap[attribute.Path] = (WebSocketsServer) Activator.CreateInstance(socketType);
         }
 
         /// <summary>
@@ -98,7 +97,7 @@ namespace Unosquare.Labs.EmbedIO.Modules
             if (string.IsNullOrWhiteSpace(path))
                 throw new ArgumentException("Argument 'path' cannot be null", nameof(path));
 
-            this._serverMap[path] = Activator.CreateInstance<T>();
+            _serverMap[path] = Activator.CreateInstance<T>();
         }
 
         /// <summary>
@@ -116,7 +115,7 @@ namespace Unosquare.Labs.EmbedIO.Modules
             if (server == null)
                 throw new ArgumentException("Argument 'server' cannot be null", nameof(server));
 
-            this._serverMap[path] = server;
+            _serverMap[path] = server;
         }
     }
 
@@ -137,7 +136,7 @@ namespace Unosquare.Labs.EmbedIO.Modules
             if (string.IsNullOrWhiteSpace(path))
                 throw new ArgumentException("The argument 'path' must be specified.");
 
-            this.Path = path;
+            Path = path;
         }
 
         /// <summary>
@@ -191,8 +190,8 @@ namespace Unosquare.Labs.EmbedIO.Modules
         /// <param name="maxMessageSize">Maximum size of the message in bytes. Enter 0 or negative number to prevent checks.</param>
         protected WebSocketsServer(bool enableConnectionWatchdog, int maxMessageSize)
         {
-            this._enableDisconnectedSocketColletion = enableConnectionWatchdog;
-            this._maximumMessageSize = maxMessageSize;
+            _enableDisconnectedSocketColletion = enableConnectionWatchdog;
+            _maximumMessageSize = maxMessageSize;
 
             RunConnectionWatchdog();
         }
@@ -241,8 +240,8 @@ namespace Unosquare.Labs.EmbedIO.Modules
         public void AcceptWebSocket(WebServer server, HttpListenerContext context)
         {
             // first, accept the websocket
-            this.WebServer = server;
-            server.Log.DebugFormat("{0} - Accepting WebSocket . . .", this.ServerName);
+            WebServer = server;
+            server.Log.DebugFormat("{0} - Accepting WebSocket . . .", ServerName);
             const int receiveBufferSize = 2048;
             var webSocketContext =
                 context.AcceptWebSocketAsync(subProtocol: null, receiveBufferSize: receiveBufferSize,
@@ -251,7 +250,7 @@ namespace Unosquare.Labs.EmbedIO.Modules
                     .GetResult();
 
             // remove the disconnected clients
-            this.CollectDisconnected();
+            CollectDisconnected();
             lock (_syncRoot)
             {
                 // add the newly-connected client
@@ -259,9 +258,9 @@ namespace Unosquare.Labs.EmbedIO.Modules
             }
 
             server.Log.DebugFormat("{0} - WebSocket Accepted - There are " + WebSockets.Count + " sockets connected.",
-                this.ServerName);
+                ServerName);
             // call the abstract member
-            this.OnClientConnected(webSocketContext);
+            OnClientConnected(webSocketContext);
 
             try
             {
@@ -287,7 +286,7 @@ namespace Unosquare.Labs.EmbedIO.Modules
 
                     var frameBytes = new byte[receiveResult.Count];
                     Array.Copy(receiveBuffer, frameBytes, frameBytes.Length);
-                    this.OnFrameReceived(webSocketContext, frameBytes, receiveResult);
+                    OnFrameReceived(webSocketContext, frameBytes, receiveResult);
 
                     // add the response to the multi-part response
                     receivedMessage.AddRange(frameBytes);
@@ -307,19 +306,19 @@ namespace Unosquare.Labs.EmbedIO.Modules
                     // if we're at the end of the message, process the message
                     if (receiveResult.EndOfMessage)
                     {
-                        this.OnMessageReceived(webSocketContext, receivedMessage.ToArray(), receiveResult);
+                        OnMessageReceived(webSocketContext, receivedMessage.ToArray(), receiveResult);
                         receivedMessage.Clear();
                     }
                 }
             }
             catch (Exception ex)
             {
-                server.Log.ErrorFormat("{0} - Error: {1}", this.ServerName, ex);
+                server.Log.ErrorFormat("{0} - Error: {1}", ServerName, ex);
             }
             finally
             {
                 // once the loop is completed or connection aborted, remove the WebSocket
-                this.RemoveWebSocket(webSocketContext);
+                RemoveWebSocket(webSocketContext);
             }
         }
 
@@ -348,9 +347,9 @@ namespace Unosquare.Labs.EmbedIO.Modules
             var collectedCount = 0;
             lock (_syncRoot)
             {
-                for (var i = this._mWebSockets.Count - 1; i >= 0; i--)
+                for (var i = _mWebSockets.Count - 1; i >= 0; i--)
                 {
-                    var currentSocket = this._mWebSockets[i];
+                    var currentSocket = _mWebSockets[i];
                     if (currentSocket.WebSocket != null && currentSocket.WebSocket.State != WebSocketState.Open)
                     {
                         RemoveWebSocket(currentSocket);
@@ -360,8 +359,8 @@ namespace Unosquare.Labs.EmbedIO.Modules
                 }
             }
 
-            this.WebServer?.Log.DebugFormat("{0} - Collected {1} sockets. WebSocket Count: {2}", this.ServerName,
-                collectedCount, this.WebSockets.Count);
+            WebServer?.Log.DebugFormat("{0} - Collected {1} sockets. WebSocket Count: {2}", ServerName,
+                collectedCount, WebSockets.Count);
         }
 
         /// <summary>
@@ -412,9 +411,9 @@ namespace Unosquare.Labs.EmbedIO.Modules
         /// <param name="payload">The payload.</param>
         protected virtual void Broadcast(byte[] payload)
         {
-            var sockets = this.WebSockets.ToArray();
+            var sockets = WebSockets.ToArray();
             foreach (var wsc in sockets)
-                this.Send(wsc, payload);
+                Send(wsc, payload);
         }
 
         /// <summary>
@@ -423,9 +422,9 @@ namespace Unosquare.Labs.EmbedIO.Modules
         /// <param name="payload">The payload.</param>
         protected virtual void Broadcast(string payload)
         {
-            var sockets = this.WebSockets.ToArray();
+            var sockets = WebSockets.ToArray();
             foreach (var wsc in sockets)
-                this.Send(wsc, payload);
+                Send(wsc, payload);
         }
 
         /// <summary>
@@ -487,10 +486,10 @@ namespace Unosquare.Labs.EmbedIO.Modules
         /// </summary>
         public void Dispose()
         {
-            if (this._isDisposing == false)
+            if (_isDisposing == false)
             {
-                this._isDisposing = true;
-                this.Dispose(true);
+                _isDisposing = true;
+                Dispose(true);
                 GC.SuppressFinalize(this);
             }
         }
@@ -505,7 +504,7 @@ namespace Unosquare.Labs.EmbedIO.Modules
             // if called with false, return.
             if (disposeAll == false) return;
 
-            foreach (var webSocket in this._mWebSockets)
+            foreach (var webSocket in _mWebSockets)
             {
                 Close(webSocket);
             }

@@ -436,7 +436,7 @@ namespace WebSocketSharp.Net.WebSockets
             if (query[0] == '?')
                 query = query.Substring(1);
 
-            var res = new QueryStringCollection();
+            var res = new NameValueCollection();
             var components = query.Split('&');
 
             foreach (var component in components)
