@@ -69,6 +69,7 @@ namespace WebSocketSharp.Net.WebSockets
 
         internal WebSocketContext(
             TcpClient tcpClient,
+            HttpRequest request,
             string protocol,
             bool secure,
 #if SSL
@@ -104,7 +105,7 @@ namespace WebSocketSharp.Net.WebSockets
                 Stream = netStream;
             }
 
-            _request = HttpRequest.Read(Stream, 90000);
+            _request = request;
             RequestUri = CreateRequestUrl(_request.RequestUri, _request.Headers["Host"], _request.IsWebSocketRequest, secure);
 
             WebSocket = new WebSocket(this, protocol);

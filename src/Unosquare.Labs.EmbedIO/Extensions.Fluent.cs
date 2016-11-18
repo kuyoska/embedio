@@ -23,7 +23,7 @@
         /// The webserver instance.
         /// </returns>
         /// <exception cref="System.ArgumentException">Argument cannot be null.;webserver</exception>
-        public static WebServer WithStaticFolderAt(this WebServer webserver, string rootPath,
+        public static IWebServer WithStaticFolderAt(this IWebServer webserver, string rootPath,
             string defaultDocument = StaticFilesModule.DefaultDocumentName)
         {
             if (webserver == null) throw new ArgumentException(Constants.ArgumentNullExceptionMessage, nameof(webserver));

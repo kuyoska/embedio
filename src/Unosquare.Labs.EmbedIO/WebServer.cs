@@ -20,13 +20,7 @@
         /// The URL prefix.
         /// </value>
         public HttpListenerPrefixCollection UrlPrefixes => Listener.Prefixes;
-
-        /// <summary>
-        /// Gets the URL RoutingStrategy used in this instance.
-        /// By default it is set to Wildcard, but Regex is the the recommended value.
-        /// </summary>
-        public RoutingStrategy RoutingStrategy { get; protected set; }
-
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="WebServer"/> class.
         /// This constructor does not provide any Logging capabilities.

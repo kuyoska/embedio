@@ -25,17 +25,14 @@ namespace Unosquare.Labs.EmbedIO.WebSocket
             Console.WriteLine("Unosquare.Labs.EmbedIO Web Server");
 
             var logger = new Log.SimpleConsoleLog();
-
-            var server = new WebServer("http://localhost:8081", logger);
-            server.WithStaticFolderAt("wwwroot");
-
+            
             var socketServer = new WebSocketServer(8080, logger);
+            socketServer.WithStaticFolderAt("wwwroot");
             socketServer.AddWebSocketService<EchoServer>("/echo");
 
             var cts = new CancellationTokenSource();
 
             socketServer.RunAsync(cts.Token);
-            server.RunAsync(cts.Token);
 
             while (true)
             {
@@ -53,15 +50,10 @@ namespace Unosquare.Labs.EmbedIO.WebSocket
                     Console.WriteLine($"RX {Encoding.UTF8.GetString(responseBytes.Array)}");
                     break;
                 }
-                else
-                {
-                    cts.Cancel();
-                    Environment.Exit(1);
-                }
             }
 
             Console.ReadLine();
-
+            cts.Cancel();
         }
     }
 }

@@ -1,11 +1,13 @@
 ﻿#if NET452
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.Labs.EmbedIO.Log;
+using WebSocketSharp;
 using WebSocketSharp.Net.WebSockets;
 using WebSocketSharp.Server;
 
@@ -107,7 +109,7 @@ namespace Unosquare.Labs.EmbedIO
 
             Listener.Start();
 
-            Log.Info("Started Tcp Listener");
+            Log.Info("Started TCP Listener");
             _listenerTask = Task.Factory.StartNew(() =>
             {
                 while (true)
@@ -115,8 +117,21 @@ namespace Unosquare.Labs.EmbedIO
                     try
                     {
                         var cl = Listener.AcceptTcpClient();
-                        var ctx = new WebSocketContext(cl, null, false, Log);
-                        Task.Factory.StartNew(context => HandleClientRequest(context as WebSocketContext), ctx, ct);
+                        var stream = cl.GetStream();
+                        var request = HttpRequest.Read(stream, 90000);
+
+                        if (request.IsWebSocketRequest)
+                        {
+                            Log.Info("Process websocket request");
+
+                            var ctx = new WebSocketContext(cl, request, null, false, Log);
+                            Task.Factory.StartNew(context => HandleClientRequest(context as WebSocketContext), ctx, ct);
+                        }
+                        else
+                        {
+                            Log.Info("Process web request");
+
+                        }
                     }
                     catch (OperationCanceledException)
                     {

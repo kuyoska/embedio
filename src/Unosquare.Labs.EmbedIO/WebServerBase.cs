@@ -9,11 +9,33 @@
     using System.Threading.Tasks;
 
     /// <summary>
+    /// Represents a Web Server interface
+    /// </summary>
+    public interface IWebServer
+    {
+        /// <summary>
+        /// Gets the log.
+        /// </summary>
+        ILog Log { get; }
+
+        /// <summary>
+        /// Gets the routing strategy.
+        /// </summary>
+        RoutingStrategy RoutingStrategy { get; }
+
+        /// <summary>
+        /// Registers the module.
+        /// </summary>
+        /// <param name="module">The module.</param>
+        void RegisterModule(IWebModule module);
+    }
+
+    /// <summary>
     /// Represents a Web Server base class
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <seealso cref="System.IDisposable" />
-    public abstract class WebServerBase<T> : IDisposable
+    public abstract class WebServerBase<T> : IWebServer, IDisposable
     {
         /// <summary>
         /// The modules
@@ -56,6 +78,12 @@
         /// The log.
         /// </value>
         public ILog Log { get; protected set; }
+
+        /// <summary>
+        /// Gets the URL RoutingStrategy used in this instance.
+        /// By default it is set to Wildcard, but Regex is the the recommended value.
+        /// </summary>
+        public RoutingStrategy RoutingStrategy { get; protected set; }
 
         /// <summary>
         /// Runs the asynchronous.
