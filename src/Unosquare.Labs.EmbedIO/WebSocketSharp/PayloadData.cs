@@ -40,8 +40,8 @@ namespace WebSocketSharp
 
         private ushort _code;
         private bool _codeSet;
-        private byte[] _data;
-        private long _length;
+        private readonly byte[] _data;
+        private readonly long _length;
         private string _reason;
         private bool _reasonSet;
 
@@ -86,7 +86,7 @@ namespace WebSocketSharp
         internal PayloadData()
         {
             _code = 1005;
-            _reason = String.Empty;
+            _reason = string.Empty;
 
             _data = WebSocket.EmptyBytes;
 
@@ -108,7 +108,7 @@ namespace WebSocketSharp
         internal PayloadData(ushort code, string reason)
         {
             _code = code;
-            _reason = reason ?? String.Empty;
+            _reason = reason ?? string.Empty;
 
             _data = code.Append(reason);
             _length = _data.LongLength;
@@ -150,7 +150,7 @@ namespace WebSocketSharp
                 {
                     _reason = _length > 2
                               ? _data.SubArray(2, _length - 2).UTF8Decode()
-                              : String.Empty;
+                              : string.Empty;
 
                     _reasonSet = true;
                 }
@@ -189,8 +189,7 @@ namespace WebSocketSharp
 
         public IEnumerator<byte> GetEnumerator()
         {
-            foreach (var b in _data)
-                yield return b;
+            return ((IEnumerable<byte>) _data).GetEnumerator();
         }
 
         public byte[] ToArray()

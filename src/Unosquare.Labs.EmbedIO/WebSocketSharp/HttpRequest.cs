@@ -40,7 +40,6 @@ using System.IO;
 using System.Net;
 using System.Text;
 using Unosquare.Labs.EmbedIO;
-using WebSocketSharp.Net;
 
 namespace WebSocketSharp
 {
@@ -122,7 +121,7 @@ namespace WebSocketSharp
         {
             var host = uri.DnsSafeHost;
             var port = uri.Port;
-            var authority = String.Format("{0}:{1}", host, port);
+            var authority = $"{host}:{port}";
             var req = new HttpRequest("CONNECT", authority);
             req.Headers["Host"] = port == 80 ? host : authority;
 
@@ -163,9 +162,8 @@ namespace WebSocketSharp
                 throw new ArgumentException("Invalid request line: " + headerParts[0]);
 
             var headers = new WebHeaderCollection();
-            for (int i = 1; i < headerParts.Length; i++)
+            for (var i = 1; i < headerParts.Length; i++)
             {
-
                 var parts = headerParts[i].Split(':');
 
                 headers[parts[0]] = parts[1];
@@ -177,7 +175,7 @@ namespace WebSocketSharp
 
         internal static HttpRequest Read(Stream stream, int millisecondsTimeout)
         {
-            return Read<HttpRequest>(stream, Parse, millisecondsTimeout);
+            return Read(stream, Parse, millisecondsTimeout);
         }
 
         #endregion

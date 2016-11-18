@@ -26,9 +26,7 @@
  * THE SOFTWARE.
  */
 #endregion
-
-using System;
-
+ 
 namespace WebSocketSharp
 {
     /// <summary>

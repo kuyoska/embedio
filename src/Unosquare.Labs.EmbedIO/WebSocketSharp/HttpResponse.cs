@@ -38,10 +38,6 @@ namespace WebSocketSharp
 {
     internal class HttpResponse : HttpBase
     {
-        #region Private Fields
-
-        #endregion
-
         #region Private Constructors
 
         private HttpResponse(string code, string reason, Version version, NameValueCollection headers)
@@ -159,9 +155,8 @@ namespace WebSocketSharp
                 case 504: return "Gateway Timeout";
                 case 505: return "Http Version Not Supported";
                 case 507: return "Insufficient Storage";
+                default: return string.Empty;
             }
-
-            return string.Empty;
         }
 
         internal static HttpResponse CreateCloseResponse(HttpStatusCode code)
@@ -198,7 +193,7 @@ namespace WebSocketSharp
                 throw new ArgumentException("Invalid status line: " + headerParts[0]);
 
             var headers = new WebHeaderCollection();
-            for (int i = 1; i < headerParts.Length; i++)
+            for (var i = 1; i < headerParts.Length; i++)
             {
                 var parts = headerParts[i].Split(':');
 

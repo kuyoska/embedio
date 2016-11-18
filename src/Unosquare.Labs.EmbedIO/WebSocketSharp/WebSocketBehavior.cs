@@ -82,7 +82,7 @@ namespace WebSocketSharp.Server
         /// A <see cref="ILog"/> that provides the logging functions,
         /// or <see langword="null"/> if the WebSocket connection isn't established.
         /// </value>
-        protected ILog Log => _websocket != null ? _websocket.Log : null;
+        protected ILog Log => _websocket?.Log;
 
         /// <summary>
         /// Gets the access to the sessions in the WebSocket service.

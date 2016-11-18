@@ -31,80 +31,77 @@ using System;
 
 namespace WebSocketSharp
 {
-  /// <summary>
-  /// The exception that is thrown when a <see cref="WebSocket"/> gets a fatal error.
-  /// </summary>
-  public class WebSocketException : Exception
-  {
-#region Private Fields
-
-      #endregion
-
-#region Internal Constructors
-
-    internal WebSocketException ()
-      : this (CloseStatusCode.Abnormal, null, null)
+    /// <summary>
+    /// The exception that is thrown when a <see cref="WebSocket"/> gets a fatal error.
+    /// </summary>
+    public class WebSocketException : Exception
     {
-    }
+        #region Internal Constructors
 
-    internal WebSocketException (Exception innerException)
-      : this (CloseStatusCode.Abnormal, null, innerException)
-    {
-    }
+        internal WebSocketException()
+            : this(CloseStatusCode.Abnormal, null, null)
+        {
+        }
 
-    internal WebSocketException (string message)
-      : this (CloseStatusCode.Abnormal, message, null)
-    {
-    }
+        internal WebSocketException(Exception innerException)
+            : this(CloseStatusCode.Abnormal, null, innerException)
+        {
+        }
 
-    internal WebSocketException (CloseStatusCode code)
-      : this (code, null, null)
-    {
-    }
+        internal WebSocketException(string message)
+            : this(CloseStatusCode.Abnormal, message, null)
+        {
+        }
 
-    internal WebSocketException (string message, Exception innerException)
-      : this (CloseStatusCode.Abnormal, message, innerException)
-    {
-    }
+        internal WebSocketException(CloseStatusCode code)
+            : this(code, null, null)
+        {
+        }
 
-    internal WebSocketException (CloseStatusCode code, Exception innerException)
-      : this (code, null, innerException)
-    {
-    }
+        internal WebSocketException(string message, Exception innerException)
+            : this(CloseStatusCode.Abnormal, message, innerException)
+        {
+        }
 
-    internal WebSocketException (CloseStatusCode code, string message)
-      : this (code, message, null)
-    {
-    }
+        internal WebSocketException(CloseStatusCode code, Exception innerException)
+            : this(code, null, innerException)
+        {
+        }
 
-    internal WebSocketException (CloseStatusCode code, string message, Exception innerException)
-      : base (message ?? GetMessage(code), innerException)
-    {
-      Code = code;
-    }
+        internal WebSocketException(CloseStatusCode code, string message)
+            : this(code, message, null)
+        {
+        }
+
+        internal WebSocketException(CloseStatusCode code, string message, Exception innerException)
+            : base(message ?? GetMessage(code), innerException)
+        {
+            Code = code;
+        }
 
         internal static string GetMessage(CloseStatusCode code)
         {
             return code == CloseStatusCode.ProtocolError
-                   ? "A WebSocket protocol error has occurred."
-                   : code == CloseStatusCode.UnsupportedData
-                     ? "Unsupported data has been received."
-                     : code == CloseStatusCode.Abnormal
-                       ? "An exception has occurred."
-                       : code == CloseStatusCode.InvalidData
-                         ? "Invalid data has been received."
-                         : code == CloseStatusCode.PolicyViolation
-                           ? "A policy violation has occurred."
-                           : code == CloseStatusCode.TooBig
-                             ? "A too big message has been received."
-                             : code == CloseStatusCode.MandatoryExtension
-                               ? "WebSocket client didn't receive expected extension(s)."
-                               : code == CloseStatusCode.ServerError
-                                 ? "WebSocket server got an internal error."
-                                 : code == CloseStatusCode.TlsHandshakeFailure
-                                   ? "An error has occurred during a TLS handshake."
-                                   : String.Empty;
+                ? "A WebSocket protocol error has occurred."
+                : code == CloseStatusCode.UnsupportedData
+                    ? "Unsupported data has been received."
+                    : code == CloseStatusCode.Abnormal
+                        ? "An exception has occurred."
+                        : code == CloseStatusCode.InvalidData
+                            ? "Invalid data has been received."
+                            : code == CloseStatusCode.PolicyViolation
+                                ? "A policy violation has occurred."
+                                : code == CloseStatusCode.TooBig
+                                    ? "A too big message has been received."
+                                    : code == CloseStatusCode.MandatoryExtension
+                                        ? "WebSocket client didn't receive expected extension(s)."
+                                        : code == CloseStatusCode.ServerError
+                                            ? "WebSocket server got an internal error."
+                                            : code == CloseStatusCode.TlsHandshakeFailure
+                                                ? "An error has occurred during a TLS handshake."
+                                                : string.Empty;
         }
+
         #endregion
 
         #region Public Properties
@@ -118,7 +115,8 @@ namespace WebSocketSharp
         /// </value>
         public CloseStatusCode Code { get; }
 
-      #endregion
-  }
+        #endregion
+    }
 }
+
 #endif

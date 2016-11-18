@@ -6,7 +6,6 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.Labs.EmbedIO.Log;
-using WebSocketSharp.Net;
 using WebSocketSharp.Net.WebSockets;
 using WebSocketSharp.Server;
 
@@ -118,8 +117,8 @@ namespace Unosquare.Labs.EmbedIO
                     try
                     {
                         var cl = Listener.AcceptTcpClient();
-                        var ctx = new TcpListenerWebSocketContext(cl, null, false, Log);
-                        Task.Factory.StartNew(context => HandleClientRequest(context as TcpListenerWebSocketContext, app), ctx, ct);
+                        var ctx = new WebSocketContext(cl, null, false, Log);
+                        Task.Factory.StartNew(context => HandleClientRequest(context as WebSocketContext), ctx, ct);
                     }
                     catch (OperationCanceledException)
                     {
@@ -135,7 +134,7 @@ namespace Unosquare.Labs.EmbedIO
             return _listenerTask;
         }
 
-        private void HandleClientRequest(TcpListenerWebSocketContext context, Middleware app)
+        private void HandleClientRequest(WebSocketContext context)
         {
             var uri = context.RequestUri;
             if (uri == null)
@@ -144,7 +143,7 @@ namespace Unosquare.Labs.EmbedIO
                 return;
             }
             
-            var finalPath = HttpUtility.UrlDecode(uri.AbsolutePath).TrimEnd('/');
+            var finalPath = WebUtility.UrlDecode(uri.AbsolutePath).TrimEnd('/');
             finalPath = finalPath.Length > 0 ? finalPath : "/";
 
             if (_services.ContainsKey(finalPath) == false)

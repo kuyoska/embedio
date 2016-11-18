@@ -11,9 +11,12 @@ using WebSocketSharp.Net;
 
 namespace Unosquare.Labs.EmbedIO.WebSocketSharp
 {
+    /// <summary>
+    /// Static parser to create CookieCollections
+    /// </summary>
     public static class CookieCollectionParser
     {
-        private static string[] splitCookieHeaderValue(string value)
+        private static string[] SplitCookieHeaderValue(string value)
         {
             return new List<string>(value.SplitHeaderValue(',', ';')).ToArray();
         }
@@ -34,7 +37,7 @@ namespace Unosquare.Labs.EmbedIO.WebSocketSharp
                 if (c == '"')
                 {
                     if (escaped)
-                        escaped = !escaped;
+                        escaped = false;
                     else
                         quoted = !quoted;
                 }
@@ -52,9 +55,6 @@ namespace Unosquare.Labs.EmbedIO.WebSocketSharp
 
                         continue;
                     }
-                }
-                else
-                {
                 }
 
                 buff.Append(c);
@@ -76,7 +76,7 @@ namespace Unosquare.Labs.EmbedIO.WebSocketSharp
             return len < 0
                    ? value
                    : len == 0
-                     ? String.Empty
+                     ? string.Empty
                      : value.Substring(start + 1, len).Replace("\\\"", "\"");
         }
 
@@ -98,22 +98,23 @@ namespace Unosquare.Labs.EmbedIO.WebSocketSharp
                    : null;
         }
 
-        private static CookieCollection parseRequest(string value)
+        private static CookieCollection ParseRequest(string value)
         {
             var cookies = new CookieCollection();
 
             Cookie cookie = null;
             var ver = 0;
-            var pairs = splitCookieHeaderValue(value);
-            for (var i = 0; i < pairs.Length; i++)
+            var pairs = SplitCookieHeaderValue(value);
+
+            foreach (var t in pairs)
             {
-                var pair = pairs[i].Trim();
+                var pair = t.Trim();
                 if (pair.Length == 0)
                     continue;
 
                 if (pair.StartsWith("$version", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    ver = Int32.Parse(pair.GetValue('=', true));
+                    ver = int.Parse(pair.GetValue('=', true));
                 }
                 else if (pair.StartsWith("$path", StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -128,8 +129,8 @@ namespace Unosquare.Labs.EmbedIO.WebSocketSharp
                 else if (pair.StartsWith("$port", StringComparison.InvariantCultureIgnoreCase))
                 {
                     var port = pair.Equals("$port", StringComparison.InvariantCultureIgnoreCase)
-                               ? "\"\""
-                               : pair.GetValue('=');
+                        ? "\"\""
+                        : pair.GetValue('=');
 
                     if (cookie != null)
                         cookie.Port = port;
@@ -140,7 +141,7 @@ namespace Unosquare.Labs.EmbedIO.WebSocketSharp
                         cookies.Add(cookie);
 
                     string name;
-                    string val = String.Empty;
+                    var val = string.Empty;
 
                     var pos = pair.IndexOf('=');
                     if (pos == -1)
@@ -169,12 +170,13 @@ namespace Unosquare.Labs.EmbedIO.WebSocketSharp
             return cookies;
         }
 
-        private static CookieCollection parseResponse(string value)
+        private static CookieCollection ParseResponse(string value)
         {
             var cookies = new CookieCollection();
 
             Cookie cookie = null;
-            var pairs = splitCookieHeaderValue(value);
+            var pairs = SplitCookieHeaderValue(value);
+
             for (var i = 0; i < pairs.Length; i++)
             {
                 var pair = pairs[i].Trim();
@@ -184,7 +186,7 @@ namespace Unosquare.Labs.EmbedIO.WebSocketSharp
                 if (pair.StartsWith("version", StringComparison.InvariantCultureIgnoreCase))
                 {
                     if (cookie != null)
-                        cookie.Version = Int32.Parse(pair.GetValue('=', true));
+                        cookie.Version = int.Parse(pair.GetValue('=', true));
                 }
                 else if (pair.StartsWith("expires", StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -206,8 +208,8 @@ namespace Unosquare.Labs.EmbedIO.WebSocketSharp
                 }
                 else if (pair.StartsWith("max-age", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var max = Int32.Parse(pair.GetValue('=', true));
-                    var expires = DateTime.Now.AddSeconds((double)max);
+                    var max = int.Parse(pair.GetValue('=', true));
+                    var expires = DateTime.Now.AddSeconds(max);
                     if (cookie != null)
                         cookie.Expires = expires;
                 }
@@ -233,7 +235,7 @@ namespace Unosquare.Labs.EmbedIO.WebSocketSharp
                 else if (pair.StartsWith("comment", StringComparison.InvariantCultureIgnoreCase))
                 {
                     if (cookie != null)
-                        cookie.Comment = HttpUtility.UrlDecode(pair.GetValue('='));
+                        cookie.Comment = WebUtility.UrlDecode(pair.GetValue('='));
                 }
                 else if (pair.StartsWith("commenturl", StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -261,7 +263,7 @@ namespace Unosquare.Labs.EmbedIO.WebSocketSharp
                         cookies.Add(cookie);
 
                     string name;
-                    string val = String.Empty;
+                    var val = string.Empty;
 
                     var pos = pair.IndexOf('=');
                     if (pos == -1)
@@ -291,10 +293,9 @@ namespace Unosquare.Labs.EmbedIO.WebSocketSharp
         internal static CookieCollection Parse(string value, bool response)
         {
             return response
-                   ? parseResponse(value)
-                   : parseRequest(value);
+                   ? ParseResponse(value)
+                   : ParseRequest(value);
         }
-
     }
 }
 #endif

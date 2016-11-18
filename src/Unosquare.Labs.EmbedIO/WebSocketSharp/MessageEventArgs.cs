@@ -52,7 +52,7 @@ namespace WebSocketSharp
 
         private string _data;
         private bool _dataSet;
-        private byte[] _rawData;
+        private readonly byte[] _rawData;
 
         #endregion
 
@@ -102,7 +102,7 @@ namespace WebSocketSharp
         {
             get
             {
-                setData();
+                SetData();
                 return _data;
             }
         }
@@ -141,7 +141,7 @@ namespace WebSocketSharp
         {
             get
             {
-                setData();
+                SetData();
                 return _rawData;
             }
         }
@@ -149,7 +149,8 @@ namespace WebSocketSharp
         #endregion
 
         #region Private Methods
-        private void setData()
+
+        private void SetData()
         {
             if (_dataSet)
                 return;

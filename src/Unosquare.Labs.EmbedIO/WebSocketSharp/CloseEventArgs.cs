@@ -45,10 +45,6 @@ namespace WebSocketSharp
     /// </remarks>
     public class CloseEventArgs : EventArgs
     {
-        #region Private Fields
-
-        #endregion
-
         #region Internal Constructors
 
         internal CloseEventArgs()

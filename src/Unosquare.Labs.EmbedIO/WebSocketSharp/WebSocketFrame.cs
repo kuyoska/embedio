@@ -101,10 +101,6 @@ namespace WebSocketSharp
     }
     internal class WebSocketFrame : IEnumerable<byte>
     {
-        #region Private Fields
-
-        #endregion
-
         #region Internal Fields
 
         /// <summary>
@@ -176,7 +172,7 @@ namespace WebSocketSharp
             if (mask)
             {
                 Mask = Mask.On;
-                MaskingKey = createMaskingKey();
+                MaskingKey = CreateMaskingKey();
                 payloadData.Mask(MaskingKey);
             }
             else
@@ -254,7 +250,7 @@ namespace WebSocketSharp
 
         #region Private Methods
 
-        private static byte[] createMaskingKey()
+        private static byte[] CreateMaskingKey()
         {
             var key = new byte[4];
             WebSocket.RandomNumber.GetBytes(key);
@@ -262,7 +258,7 @@ namespace WebSocketSharp
             return key;
         }
 
-        private static string dump(WebSocketFrame frame)
+        private static string Dump(WebSocketFrame frame)
         {
             var len = frame.Length;
             var cnt = (long)(len / 4);
@@ -329,10 +325,10 @@ namespace WebSocketSharp
                       Convert.ToString(bytes[j], 2).PadLeft(8, '0'),
                       rem >= 2 ? Convert.ToString(bytes[j + 1], 2).PadLeft(8, '0') : String.Empty,
                       rem == 3 ? Convert.ToString(bytes[j + 2], 2).PadLeft(8, '0') : String.Empty,
-                      String.Empty);
+                      string.Empty);
             }
 
-            output.AppendFormat(footerFmt, String.Empty);
+            output.AppendFormat(footerFmt, string.Empty);
             return output.ToString();
         }
 
@@ -349,14 +345,14 @@ namespace WebSocketSharp
 
             // Payload Data
             var payload = payloadLen == 0
-                          ? String.Empty
+                          ? string.Empty
                           : payloadLen > 125
                             ? "---"
                             : frame.IsText && !(frame.IsFragment || frame.IsMasked || frame.IsCompressed)
                               ? frame.PayloadData.ApplicationData.UTF8Decode()
                               : frame.PayloadData.ToString();
 
-            var fmt = @"
+            const string fmt = @"
                     FIN: {0}
                    RSV1: {1}
                    RSV2: {2}
@@ -368,7 +364,7 @@ Extended Payload Length: {7}
             Masking Key: {8}
            Payload Data: {9}";
 
-            return String.Format(
+            return string.Format(
               fmt,
               frame.Fin,
               frame.Rsv1,
@@ -382,7 +378,7 @@ Extended Payload Length: {7}
               payload);
         }
 
-        private static WebSocketFrame processHeader(byte[] header)
+        private static WebSocketFrame ProcessHeader(byte[] header)
         {
             if (header.Length != 2)
                 throw new WebSocketException("The header of a frame cannot be read from the stream.");
@@ -421,25 +417,25 @@ Extended Payload Length: {7}
             if (err != null)
                 throw new WebSocketException(CloseStatusCode.ProtocolError, err);
 
-            var frame = new WebSocketFrame();
-            frame.Fin = fin;
-            frame.Rsv1 = rsv1;
-            frame.Rsv2 = rsv2;
-            frame.Rsv3 = rsv3;
-            frame.Opcode = (Opcode)opcode;
-            frame.Mask = mask;
-            frame.PayloadLength = payloadLen;
-
-            return frame;
+            return new WebSocketFrame
+            {
+                Fin = fin,
+                Rsv1 = rsv1,
+                Rsv2 = rsv2,
+                Rsv3 = rsv3,
+                Opcode = (Opcode) opcode,
+                Mask = mask,
+                PayloadLength = payloadLen
+            };
         }
 
-        private static WebSocketFrame readExtendedPayloadLength(Stream stream, WebSocketFrame frame)
+        private static void ReadExtendedPayloadLength(Stream stream, WebSocketFrame frame)
         {
             var len = frame.ExtendedPayloadLengthCount;
             if (len == 0)
             {
                 frame.ExtendedPayloadLength = WebSocket.EmptyBytes;
-                return frame;
+                return;
             }
 
             var bytes = stream.ReadBytes(len);
@@ -448,10 +444,9 @@ Extended Payload Length: {7}
                   "The extended payload length of a frame cannot be read from the stream.");
 
             frame.ExtendedPayloadLength = bytes;
-            return frame;
         }
 
-        private static void readExtendedPayloadLengthAsync(
+        private static void ReadExtendedPayloadLengthAsync(
           Stream stream,
           WebSocketFrame frame,
           Action<WebSocketFrame> completed,
@@ -480,24 +475,24 @@ Extended Payload Length: {7}
               error);
         }
 
-        private static WebSocketFrame readHeader(Stream stream)
+        private static WebSocketFrame ReadHeader(Stream stream)
         {
-            return processHeader(stream.ReadBytes(2));
+            return ProcessHeader(stream.ReadBytes(2));
         }
 
-        private static void readHeaderAsync(
+        private static void ReadHeaderAsync(
           Stream stream, Action<WebSocketFrame> completed, Action<Exception> error)
         {
-            stream.ReadBytesAsync(2, bytes => completed(processHeader(bytes)), error);
+            stream.ReadBytesAsync(2, bytes => completed(ProcessHeader(bytes)), error);
         }
 
-        private static WebSocketFrame readMaskingKey(Stream stream, WebSocketFrame frame)
+        private static void ReadMaskingKey(Stream stream, WebSocketFrame frame)
         {
             var len = frame.IsMasked ? 4 : 0;
             if (len == 0)
             {
                 frame.MaskingKey = WebSocket.EmptyBytes;
-                return frame;
+                return;
             }
 
             var bytes = stream.ReadBytes(len);
@@ -505,10 +500,9 @@ Extended Payload Length: {7}
                 throw new WebSocketException("The masking key of a frame cannot be read from the stream.");
 
             frame.MaskingKey = bytes;
-            return frame;
         }
 
-        private static void readMaskingKeyAsync(
+        private static void ReadMaskingKeyAsync(
           Stream stream,
           WebSocketFrame frame,
           Action<WebSocketFrame> completed,
@@ -537,7 +531,7 @@ Extended Payload Length: {7}
               error);
         }
 
-        private static WebSocketFrame readPayloadData(Stream stream, WebSocketFrame frame)
+        private static WebSocketFrame ReadPayloadData(Stream stream, WebSocketFrame frame)
         {
             var len = frame.FullPayloadLength;
             if (len == 0)
@@ -562,7 +556,7 @@ Extended Payload Length: {7}
             return frame;
         }
 
-        private static void readPayloadDataAsync(
+        private static void ReadPayloadDataAsync(
           Stream stream,
           WebSocketFrame frame,
           Action<WebSocketFrame> completed,
@@ -621,10 +615,10 @@ Extended Payload Length: {7}
 
         internal static WebSocketFrame ReadFrame(Stream stream, bool unmask)
         {
-            var frame = readHeader(stream);
-            readExtendedPayloadLength(stream, frame);
-            readMaskingKey(stream, frame);
-            readPayloadData(stream, frame);
+            var frame = ReadHeader(stream);
+            ReadExtendedPayloadLength(stream, frame);
+            ReadMaskingKey(stream, frame);
+            ReadPayloadData(stream, frame);
 
             if (unmask)
                 frame.Unmask();
@@ -635,18 +629,18 @@ Extended Payload Length: {7}
         internal static void ReadFrameAsync(
           Stream stream, bool unmask, Action<WebSocketFrame> completed, Action<Exception> error)
         {
-            readHeaderAsync(
+            ReadHeaderAsync(
               stream,
               frame =>
-                readExtendedPayloadLengthAsync(
+                ReadExtendedPayloadLengthAsync(
                   stream,
                   frame,
                   frame1 =>
-                    readMaskingKeyAsync(
+                    ReadMaskingKeyAsync(
                       stream,
                       frame1,
                       frame2 =>
-                        readPayloadDataAsync(
+                        ReadPayloadDataAsync(
                           stream,
                           frame2,
                           frame3 =>
@@ -678,18 +672,17 @@ Extended Payload Length: {7}
 
         public IEnumerator<byte> GetEnumerator()
         {
-            foreach (var b in ToArray())
-                yield return b;
+            return ((IEnumerable<byte>) ToArray()).GetEnumerator();
         }
 
         public void Print(bool dumped)
         {
-            Console.WriteLine(dumped ? dump(this) : print(this));
+            Console.WriteLine(dumped ? Dump(this) : print(this));
         }
 
         public string PrintToString(bool dumped)
         {
-            return dumped ? dump(this) : print(this);
+            return dumped ? Dump(this) : print(this);
         }
 
         public byte[] ToArray()

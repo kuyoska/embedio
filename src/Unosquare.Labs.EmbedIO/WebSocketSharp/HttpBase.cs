@@ -42,7 +42,7 @@ namespace WebSocketSharp
     {
         #region Private Fields
 
-        private const int _headersMaxLength = 8192;
+        private const int HeadersMaxLength = 8192;
 
         #endregion
 
@@ -75,12 +75,12 @@ namespace WebSocketSharp
             get
             {
                 if (EntityBodyData == null || EntityBodyData.LongLength == 0)
-                    return String.Empty;
+                    return string.Empty;
 
                 Encoding enc = null;
 
                 var contentType = Headers["Content-Type"];
-                if (contentType != null && contentType.Length > 0)
+                if (!string.IsNullOrEmpty(contentType))
                     enc = GetEncoding(contentType);
 
                 return (enc ?? Encoding.UTF8).GetString(EntityBodyData);
@@ -98,6 +98,7 @@ namespace WebSocketSharp
         private static Encoding GetEncoding(string contentType)
         {
             var parts = contentType.Split(';');
+
             foreach (var p in parts)
             {
                 var part = p.Trim();
@@ -108,14 +109,14 @@ namespace WebSocketSharp
             return null;
         }
 
-        private static byte[] readEntityBody(Stream stream, string length)
+        private static byte[] ReadEntityBody(Stream stream, string length)
         {
             long len;
-            if (!Int64.TryParse(length, out len))
-                throw new ArgumentException("Cannot be parsed.", "length");
+            if (!long.TryParse(length, out len))
+                throw new ArgumentException("Cannot be parsed.", nameof(length));
 
             if (len < 0)
-                throw new ArgumentOutOfRangeException("length", "Less than zero.");
+                throw new ArgumentOutOfRangeException(nameof(length), "Less than zero.");
 
             return len > 1024
                    ? stream.ReadBytes(len, 1024)
@@ -124,13 +125,13 @@ namespace WebSocketSharp
                      : null;
         }
 
-        static bool EqualsWith(int value, char c, Action<int> action)
+        private static bool EqualsWith(int value, char c, Action<int> action)
         {
             action(value);
             return value == c - 0;
         }
 
-        private static string[] readHeaders(Stream stream, int maxLength)
+        private static string[] ReadHeaders(Stream stream, int maxLength)
         {
             var buff = new List<byte>();
             var cnt = 0;
@@ -182,36 +183,28 @@ namespace WebSocketSharp
               null,
               millisecondsTimeout,
               -1);
-
-            T http = null;
-            Exception exception = null;
+            
             try
             {
-                http = parser(readHeaders(stream, _headersMaxLength));
+                var http = parser(ReadHeaders(stream, HeadersMaxLength));
                 var contentLen = http.Headers["Content-Length"];
-                if (contentLen != null && contentLen.Length > 0)
-                    http.EntityBodyData = readEntityBody(stream, contentLen);
+
+                if (!string.IsNullOrEmpty(contentLen))
+                    http.EntityBodyData = ReadEntityBody(stream, contentLen);
+                
+                return http;
             }
             catch (Exception ex)
             {
-                exception = ex;
+                throw new WebSocketException(timeout
+                      ? "A timeout has occurred while reading an HTTP request/response."
+                      : "An exception has occurred while reading an HTTP request/response.", ex);
             }
             finally
             {
                 timer.Change(-1, -1);
                 timer.Dispose();
             }
-
-            var msg = timeout
-                      ? "A timeout has occurred while reading an HTTP request/response."
-                      : exception != null
-                        ? "An exception has occurred while reading an HTTP request/response."
-                        : null;
-
-            if (msg != null)
-                throw new WebSocketException(msg, exception);
-
-            return http;
         }
 
         #endregion

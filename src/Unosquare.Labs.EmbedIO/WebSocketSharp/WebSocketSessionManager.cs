@@ -34,7 +34,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Timers;
 using Unosquare.Labs.EmbedIO;
 using Unosquare.Labs.EmbedIO.Log;
 using WebSocketSharp.Net.WebSockets;
@@ -108,13 +107,13 @@ namespace WebSocketSharp.Server
         #region Private Fields
 
         private volatile bool _clean;
-        private object _forSweep;
-        private ILog _logger;
-        private Dictionary<string, IWebSocketSession> _sessions;
+        private readonly object _forSweep;
+        private readonly ILog _logger;
+        private readonly Dictionary<string, IWebSocketSession> _sessions;
         private volatile ServerState _state;
         private volatile bool _sweeping;
         private System.Timers.Timer _sweepTimer;
-        private object _sync;
+        private readonly object _sync;
         private TimeSpan _waitTime;
 
         #endregion
@@ -122,7 +121,7 @@ namespace WebSocketSharp.Server
         #region Internal Constructors
 
         internal WebSocketSessionManager()
-          : this(new NullLog())
+            : this(new NullLog())
         {
         }
 
@@ -134,10 +133,10 @@ namespace WebSocketSharp.Server
             _forSweep = new object();
             _sessions = new Dictionary<string, IWebSocketSession>();
             _state = ServerState.Ready;
-            _sync = ((ICollection)_sessions).SyncRoot;
+            _sync = ((ICollection) _sessions).SyncRoot;
             _waitTime = TimeSpan.FromSeconds(1);
 
-            setSweepTimer(60000);
+            SetSweepTimer(60000);
         }
 
         #endregion
@@ -158,14 +157,7 @@ namespace WebSocketSharp.Server
         /// supports the iteration over the collection of the IDs for the active sessions.
         /// </value>
         public IEnumerable<string> ActiveIDs
-        {
-            get
-            {
-                foreach (var res in Broadping(WebSocketFrame.EmptyPingBytes, _waitTime))
-                    if (res.Value)
-                        yield return res.Key;
-            }
-        }
+            => Broadping(WebSocketFrame.EmptyPingBytes, _waitTime).Where(res => res.Value).Select(res => res.Key);
 
         /// <summary>
         /// Gets the number of the sessions in the Websocket service.
@@ -209,14 +201,7 @@ namespace WebSocketSharp.Server
         /// supports the iteration over the collection of the IDs for the inactive sessions.
         /// </value>
         public IEnumerable<string> InactiveIDs
-        {
-            get
-            {
-                foreach (var res in Broadping(WebSocketFrame.EmptyPingBytes, _waitTime))
-                    if (!res.Value)
-                        yield return res.Key;
-            }
-        }
+            => Broadping(WebSocketFrame.EmptyPingBytes, _waitTime).Where(res => !res.Value).Select(res => res.Key);
 
         /// <summary>
         /// Gets the session with the specified <paramref name="id"/>.
@@ -249,10 +234,7 @@ namespace WebSocketSharp.Server
         /// </value>
         public bool KeepClean
         {
-            get
-            {
-                return _clean;
-            }
+            get { return _clean; }
 
             internal set
             {
@@ -292,10 +274,7 @@ namespace WebSocketSharp.Server
         /// </value>
         public TimeSpan WaitTime
         {
-            get
-            {
-                return _waitTime;
-            }
+            get { return _waitTime; }
 
             internal set
             {
@@ -318,8 +297,7 @@ namespace WebSocketSharp.Server
             try
             {
                 Broadcast(opcode, data, cache);
-                if (completed != null)
-                    completed();
+                completed?.Invoke();
             }
             catch (Exception ex)
             {
@@ -337,8 +315,7 @@ namespace WebSocketSharp.Server
             try
             {
                 Broadcast(opcode, stream, cache);
-                if (completed != null)
-                    completed();
+                completed?.Invoke();
             }
             catch (Exception ex)
             {
@@ -363,12 +340,12 @@ namespace WebSocketSharp.Server
             ThreadPool.QueueUserWorkItem(state => broadcast(opcode, stream, completed));
         }
 
-        private static string createID()
+        private static string CreateId()
         {
             return Guid.NewGuid().ToString("N");
         }
 
-        private void setSweepTimer(double interval)
+        private void SetSweepTimer(double interval)
         {
             _sweepTimer = new System.Timers.Timer(interval);
             _sweepTimer.Elapsed += (sender, e) => Sweep();
@@ -397,7 +374,7 @@ namespace WebSocketSharp.Server
                 if (_state != ServerState.Start)
                     return null;
 
-                var id = createID();
+                var id = CreateId();
                 _sessions.Add(id, session);
 
                 return id;
@@ -405,7 +382,7 @@ namespace WebSocketSharp.Server
         }
 
         internal void Broadcast(
-          Opcode opcode, byte[] data, Dictionary<CompressionMethod, byte[]> cache)
+            Opcode opcode, byte[] data, Dictionary<CompressionMethod, byte[]> cache)
         {
             foreach (var session in Sessions)
             {
@@ -417,7 +394,7 @@ namespace WebSocketSharp.Server
         }
 
         internal void Broadcast(
-          Opcode opcode, Stream stream, Dictionary<CompressionMethod, Stream> cache)
+            Opcode opcode, Stream stream, Dictionary<CompressionMethod, Stream> cache)
         {
             foreach (var session in Sessions)
             {
@@ -614,28 +591,28 @@ namespace WebSocketSharp.Server
             }
 
             stream.ReadBytesAsync(
-              length,
-              data =>
-              {
-                  var len = data.Length;
-                  if (len == 0)
-                  {
-                      _logger.Error("The data cannot be read from 'stream'.");
-                      return;
-                  }
+                length,
+                data =>
+                {
+                    var len = data.Length;
+                    if (len == 0)
+                    {
+                        _logger.Error("The data cannot be read from 'stream'.");
+                        return;
+                    }
 
-                  if (len < length)
-                      _logger.InfoFormat(
-                    "The data with 'length' cannot be read from 'stream':\n  expected: {0}\n  actual: {1}",
-                    length,
-                    len);
+                    if (len < length)
+                        _logger.InfoFormat(
+                            "The data with 'length' cannot be read from 'stream':\n  expected: {0}\n  actual: {1}",
+                            length,
+                            len);
 
-                  if (len <= WebSocket.FragmentLength)
-                      broadcast(Opcode.Binary, data, completed);
-                  else
-                      broadcast(Opcode.Binary, new MemoryStream(data), completed);
-              },
-              ex => _logger.Error(ex.ToString()));
+                    if (len <= WebSocket.FragmentLength)
+                        broadcast(Opcode.Binary, data, completed);
+                    else
+                        broadcast(Opcode.Binary, new MemoryStream(data), completed);
+                },
+                ex => _logger.Error(ex.ToString()));
         }
 
         /// <summary>
@@ -649,13 +626,10 @@ namespace WebSocketSharp.Server
         public Dictionary<string, bool> Broadping()
         {
             var msg = CheckIfAvailable(_state, false, true, false);
-            if (msg != null)
-            {
-                _logger.Error(msg);
-                return null;
-            }
+            if (msg == null) return Broadping(WebSocketFrame.EmptyPingBytes, _waitTime);
 
-            return Broadping(WebSocketFrame.EmptyPingBytes, _waitTime);
+            _logger.Error(msg);
+            return null;
         }
 
         /// <summary>
@@ -672,20 +646,17 @@ namespace WebSocketSharp.Server
         /// </param>
         public Dictionary<string, bool> Broadping(string message)
         {
-            if (message == null || message.Length == 0)
+            if (string.IsNullOrEmpty(message))
                 return Broadping();
 
             byte[] data = null;
             var msg = CheckIfAvailable(_state, false, true, false) ??
                       WebSocket.CheckPingParameter(message, out data);
 
-            if (msg != null)
-            {
-                _logger.Error(msg);
-                return null;
-            }
+            if (msg == null) return Broadping(WebSocketFrame.CreatePingFrame(data, false).ToArray(), _waitTime);
 
-            return Broadping(WebSocketFrame.CreatePingFrame(data, false).ToArray(), _waitTime);
+            _logger.Error(msg);
+            return null;
         }
 
         /// <summary>
@@ -912,6 +883,7 @@ namespace WebSocketSharp.Server
                         if (_sessions.TryGetValue(id, out session))
                         {
                             var state = session.State;
+
                             if (state == WebSocketState.Open)
                                 session.Context.WebSocket.Close(CloseStatusCode.ProtocolError);
                             else if (state == WebSocketState.Closing)
@@ -942,7 +914,7 @@ namespace WebSocketSharp.Server
         /// </param>
         public bool TryGetSession(string id, out IWebSocketSession session)
         {
-            var msg = CheckIfAvailable(_state, false, true, false) ?? CheckIfValidSessionID(id);
+            var msg = CheckIfAvailable(_state, false, true, false) ?? CheckIfValidSessionId(id);
             if (msg != null)
             {
                 _logger.Error(msg);
@@ -954,21 +926,22 @@ namespace WebSocketSharp.Server
             return tryGetSession(id, out session);
         }
 
-        string CheckIfValidSessionID(string id)
+        string CheckIfValidSessionId(string id)
         {
-            return id == null || id.Length == 0 ? "'id' is null or empty." : null;
+            return string.IsNullOrEmpty(id) ? $"'{nameof(id)}' is null or empty." : null;
         }
 
-        static string CheckIfAvailable(
-      ServerState state, bool ready, bool start, bool shutting)
+        private static string CheckIfAvailable(ServerState state, bool ready, bool start, bool shutting)
         {
             return (!ready && (state == ServerState.Ready || state == ServerState.Stop)) ||
                    (!start && state == ServerState.Start) ||
                    (!shutting && state == ServerState.ShuttingDown)
-                   ? "This operation isn't available in: " + state.ToString().ToLower()
-                   : null;
+                ? "This operation isn't available in: " + state.ToString().ToLower()
+                : null;
         }
+
         #endregion
     }
 }
+
 #endif
