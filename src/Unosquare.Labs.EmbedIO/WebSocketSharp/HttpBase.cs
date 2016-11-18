@@ -216,6 +216,11 @@ namespace WebSocketSharp
             return Encoding.UTF8.GetBytes(ToString());
         }
 
+        public void Write(byte[] data)
+        {
+            EntityBodyData = data;
+        }
+
         #endregion
     }
 }

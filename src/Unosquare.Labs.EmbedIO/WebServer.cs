@@ -211,7 +211,7 @@
         /// Process HttpListener Request and returns true if it was handled
         /// </summary>
         /// <param name="context">The HttpListenerContext</param>
-        public bool ProcessRequest(HttpListenerContext context)
+        private bool ProcessRequest(HttpListenerContext context)
         {
             // Iterate though the loaded modules to match up a request and possibly generate a response.
             foreach (var module in Modules)

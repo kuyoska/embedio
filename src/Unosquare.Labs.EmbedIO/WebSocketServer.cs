@@ -2,8 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.Labs.EmbedIO.Log;
@@ -18,6 +20,13 @@ namespace Unosquare.Labs.EmbedIO
     /// </summary>
     public class WebSocketServer : WebServerBase<TcpListener>
     {
+        internal class HttpContext
+        {
+            internal HttpRequest Request { get; set; }
+
+            internal TcpClient Connection { get; set; }
+        }
+
         private readonly Dictionary<string, WebSocketBehavior> _services = new Dictionary<string, WebSocketBehavior>();
 
         /// <summary>
@@ -131,6 +140,8 @@ namespace Unosquare.Labs.EmbedIO
                         {
                             Log.Info("Process web request");
 
+                            var ctx = new HttpContext() {Request = request, Connection = cl};
+                            Task.Factory.StartNew(context => HandleWebRequest(context as HttpContext), ctx, ct);
                         }
                     }
                     catch (OperationCanceledException)
@@ -147,6 +158,44 @@ namespace Unosquare.Labs.EmbedIO
             return _listenerTask;
         }
 
+        private void HandleWebRequest(HttpContext context)
+        {
+            HttpResponse response = null;
+            foreach (var module in Modules)
+            {
+                // TODO: Find handler
+                var callback = module.Handlers.FirstOrDefault()?.ResponseHandler;
+
+                if (callback != null)
+                {
+                    try
+                    {
+                        throw new Exception("OK");
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log the exception message.
+                        var errorMessage = ex.ExceptionMessage("Failing module name: " + module.Name);
+                        Log.Error(errorMessage, ex);
+
+                        response = new HttpResponse(HttpStatusCode.InternalServerError);
+
+                        var message = string.Format(Constants.Response500HtmlFormat,
+                            WebUtility.HtmlEncode(errorMessage),
+                            WebUtility.HtmlEncode(ex.StackTrace));
+
+                        // Generate an HTML response
+                        response.Write(Encoding.UTF8.GetBytes(message));
+                    }
+                }
+            }
+
+            // Not found
+            if (response == null) response = new HttpResponse(HttpStatusCode.NotFound);
+            context.Connection.Client.Send(Encoding.UTF8.GetBytes(response.ToString()));
+            context.Connection.Client.Close();
+        }
+        
         private void HandleClientRequest(WebSocketContext context)
         {
             var uri = context.RequestUri;
