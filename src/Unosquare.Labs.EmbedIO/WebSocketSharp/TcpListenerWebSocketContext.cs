@@ -59,11 +59,8 @@ namespace WebSocketSharp.Net.WebSockets
 #region Private Fields
 
         private CookieCollection _cookies;
-        private ILog _logger;
         private NameValueCollection _queryString;
         private HttpRequest _request;
-        private bool _secure;
-        private Stream _stream;
         private TcpClient _tcpClient;
         private Uri _uri;
         private IPrincipal _user;
@@ -84,8 +81,8 @@ namespace WebSocketSharp.Net.WebSockets
         )
         {
             _tcpClient = tcpClient;
-            _secure = secure;
-            _logger = logger;
+            IsSecureConnection = secure;
+            Log = logger;
 
             var netStream = tcpClient.GetStream();
             if (secure)
@@ -108,10 +105,10 @@ namespace WebSocketSharp.Net.WebSockets
             }
             else
             {
-                _stream = netStream;
+                Stream = netStream;
             }
 
-            _request = HttpRequest.Read(_stream, 90000);
+            _request = HttpRequest.Read(Stream, 90000);
             _uri = CreateRequestUrl(_request.RequestUri, _request.Headers["Host"], _request.IsWebSocketRequest, secure);
 
             _websocket = new WebSocket(this, protocol);
@@ -121,23 +118,11 @@ namespace WebSocketSharp.Net.WebSockets
 
 #region Internal Properties
 
-        internal ILog Log
-        {
-            get
-            {
-                return _logger;
-            }
-        }
+        internal ILog Log { get; }
 
-        internal Stream Stream
-        {
-            get
-            {
-                return _stream;
-            }
-        }
+        internal Stream Stream { get; }
 
-#endregion
+        #endregion
 
 #region Public Properties
 
@@ -187,7 +172,7 @@ namespace WebSocketSharp.Net.WebSockets
         /// <value>
         /// <c>true</c> if the connection is secured; otherwise, <c>false</c>.
         /// </value>
-        public override bool IsSecureConnection => _secure;
+        public override bool IsSecureConnection { get; }
 
         /// <summary>
         /// Gets a value indicating whether the request is a WebSocket handshake request.
@@ -231,13 +216,7 @@ namespace WebSocketSharp.Net.WebSockets
         /// <value>
         /// A <see cref="string"/> that represents the value of the Sec-WebSocket-Key header.
         /// </value>
-        public override string SecWebSocketKey
-        {
-            get
-            {
-                return _request.Headers["Sec-WebSocket-Key"];
-            }
-        }
+        public override string SecWebSocketKey => _request.Headers["Sec-WebSocket-Key"];
 
         /// <summary>
         /// Gets the values of the Sec-WebSocket-Protocol header included in the request.
@@ -272,13 +251,7 @@ namespace WebSocketSharp.Net.WebSockets
         /// <value>
         /// A <see cref="string"/> that represents the value of the Sec-WebSocket-Version header.
         /// </value>
-        public override string SecWebSocketVersion
-        {
-            get
-            {
-                return _request.Headers["Sec-WebSocket-Version"];
-            }
-        }
+        public override string SecWebSocketVersion => _request.Headers["Sec-WebSocket-Version"];
 
         /// <summary>
         /// Gets the server endpoint as an IP address and a port number.
@@ -286,13 +259,7 @@ namespace WebSocketSharp.Net.WebSockets
         /// <value>
         /// A <see cref="IPEndPoint"/> that represents the server endpoint.
         /// </value>
-        public override IPEndPoint ServerEndPoint
-        {
-            get
-            {
-                return (IPEndPoint)_tcpClient.Client.LocalEndPoint;
-            }
-        }
+        public override IPEndPoint ServerEndPoint => (IPEndPoint)_tcpClient.Client.LocalEndPoint;
 
         /// <summary>
         /// Gets the client information (identity, authentication, and security roles).
@@ -308,13 +275,7 @@ namespace WebSocketSharp.Net.WebSockets
         /// <value>
         /// A <see cref="IPEndPoint"/> that represents the client endpoint.
         /// </value>
-        public override IPEndPoint UserEndPoint
-        {
-            get
-            {
-                return (IPEndPoint)_tcpClient.Client.RemoteEndPoint;
-            }
-        }
+        public override IPEndPoint UserEndPoint => (IPEndPoint)_tcpClient.Client.RemoteEndPoint;
 
         /// <summary>
         /// Gets the <see cref="WebSocketSharp.WebSocket"/> instance used for
@@ -323,15 +284,9 @@ namespace WebSocketSharp.Net.WebSockets
         /// <value>
         /// A <see cref="WebSocketSharp.WebSocket"/>.
         /// </value>
-        public override WebSocket WebSocket
-        {
-            get
-            {
-                return _websocket;
-            }
-        }
+        public override WebSocket WebSocket => _websocket;
 
-#endregion
+        #endregion
 
 #region Internal Methods
 
@@ -435,7 +390,7 @@ namespace WebSocketSharp.Net.WebSockets
 
         internal void Close()
         {
-            _stream.Close();
+            Stream.Close();
             _tcpClient.Close();
         }
 

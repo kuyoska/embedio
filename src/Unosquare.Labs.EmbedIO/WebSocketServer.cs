@@ -17,7 +17,7 @@ namespace Unosquare.Labs.EmbedIO
     /// </summary>
     public class WebSocketServer : WebServerBase<TcpListener>
     {
-        private Dictionary<string, WebSocketBehavior> _services = new Dictionary<string, WebSocketBehavior>();
+        private readonly Dictionary<string, WebSocketBehavior> _services = new Dictionary<string, WebSocketBehavior>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WebSocketServer"/> class.
@@ -62,23 +62,20 @@ namespace Unosquare.Labs.EmbedIO
         {
             if (string.IsNullOrEmpty(path))
             {
-                Log.Error("'path' is null or empty.");
+                Log.Error($"'{nameof(path)}' is null or empty.");
                 return false;
             }
 
             if (path[0] != '/')
             {
-                Log.Error("'path' is not an absolute path.");
+                Log.Error($"'{nameof(path)}' is not an absolute path.");
                 return false;
             }
 
-            if (path.IndexOfAny(new[] { '?', '#' }) > -1)
-            {
-                Log.Error("'path' includes either or both query and fragment components.");
-                return false;
-            }
+            if (path.IndexOfAny(new[] {'?', '#'}) <= -1) return true;
 
-            return true;
+            Log.Error($"'{nameof(path)}' includes either or both query and fragment components.");
+            return false;
         }
         
         /// <summary>

@@ -47,15 +47,8 @@ namespace WebSocketSharp.Server
     {
         #region Private Fields
 
-        private WebSocketContext _context;
         private bool _emitOnPing;
-        private Func<CookieCollection, CookieCollection, bool> _cookiesValidator;
-        private string _id;
-        private bool _ignoreExtensions;
-        private Func<string, bool> _originValidator;
         private string _protocol;
-        private WebSocketSessionManager _sessions;
-        private DateTime _startTime;
         private WebSocket _websocket;
 
         #endregion
@@ -67,7 +60,7 @@ namespace WebSocketSharp.Server
         /// </summary>
         protected WebSocketBehavior()
         {
-            _startTime = DateTime.MaxValue;
+            StartTime = DateTime.MaxValue;
         }
 
         #endregion
@@ -80,18 +73,7 @@ namespace WebSocketSharp.Server
         /// <value>
         /// The cookies validator.
         /// </value>
-        public Func<CookieCollection, CookieCollection, bool> CookiesValidator
-        {
-            get
-            {
-                return _cookiesValidator;
-            }
-
-            set
-            {
-                _cookiesValidator = value;
-            }
-        }
+        public Func<CookieCollection, CookieCollection, bool> CookiesValidator { get; set; }
 
         /// <summary>
         /// Gets the logging functions.
@@ -100,13 +82,7 @@ namespace WebSocketSharp.Server
         /// A <see cref="ILog"/> that provides the logging functions,
         /// or <see langword="null"/> if the WebSocket connection isn't established.
         /// </value>
-        protected ILog Log
-        {
-            get
-            {
-                return _websocket != null ? _websocket.Log : null;
-            }
-        }
+        protected ILog Log => _websocket != null ? _websocket.Log : null;
 
         /// <summary>
         /// Gets the access to the sessions in the WebSocket service.
@@ -115,13 +91,7 @@ namespace WebSocketSharp.Server
         /// A <see cref="WebSocketSessionManager"/> that provides the access to the sessions,
         /// or <see langword="null"/> if the WebSocket connection isn't established.
         /// </value>
-        protected WebSocketSessionManager Sessions
-        {
-            get
-            {
-                return _sessions;
-            }
-        }
+        protected WebSocketSessionManager Sessions { get; private set; }
 
         #endregion
 
@@ -134,13 +104,7 @@ namespace WebSocketSharp.Server
         /// A <see cref="WebSocketContext"/> instance that provides the access to the handshake request,
         /// or <see langword="null"/> if the WebSocket connection isn't established.
         /// </value>
-        public WebSocketContext Context
-        {
-            get
-            {
-                return _context;
-            }
-        }
+        public WebSocketContext Context { get; private set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the <see cref="WebSocket"/> used in a session emits
@@ -176,13 +140,7 @@ namespace WebSocketSharp.Server
         /// A <see cref="string"/> that represents the unique ID of the session,
         /// or <see langword="null"/> if the WebSocket connection isn't established.
         /// </value>
-        public string ID
-        {
-            get
-            {
-                return _id;
-            }
-        }
+        public string ID { get; private set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the WebSocket service ignores
@@ -192,18 +150,7 @@ namespace WebSocketSharp.Server
         /// <c>true</c> if the WebSocket service ignores the extensions requested from
         /// a client; otherwise, <c>false</c>. The default value is <c>false</c>.
         /// </value>
-        public bool IgnoreExtensions
-        {
-            get
-            {
-                return _ignoreExtensions;
-            }
-
-            set
-            {
-                _ignoreExtensions = value;
-            }
-        }
+        public bool IgnoreExtensions { get; set; }
 
         /// <summary>
         /// Gets or sets the delegate called to validate the Origin header included in
@@ -229,18 +176,7 @@ namespace WebSocketSharp.Server
         ///   The default value is <see langword="null"/>, and it does nothing to validate.
         ///   </para>
         /// </value>
-        public Func<string, bool> OriginValidator
-        {
-            get
-            {
-                return _originValidator;
-            }
-
-            set
-            {
-                _originValidator = value;
-            }
-        }
+        public Func<string, bool> OriginValidator { get; set; }
 
         /// <summary>
         /// Gets or sets the WebSocket subprotocol used in the WebSocket service.
@@ -285,13 +221,7 @@ namespace WebSocketSharp.Server
         /// A <see cref="DateTime"/> that represents the time that the session has started,
         /// or <see cref="DateTime.MaxValue"/> if the WebSocket connection isn't established.
         /// </value>
-        public DateTime StartTime
-        {
-            get
-            {
-                return _startTime;
-            }
-        }
+        public DateTime StartTime { get; private set; }
 
         /// <summary>
         /// Gets the state of the <see cref="WebSocket"/> used in a session.
@@ -300,13 +230,7 @@ namespace WebSocketSharp.Server
         /// One of the <see cref="WebSocketState"/> enum values, indicates the state of
         /// the <see cref="WebSocket"/>.
         /// </value>
-        public WebSocketState State
-        {
-            get
-            {
-                return _websocket != null ? _websocket.ReadyState : WebSocketState.Connecting;
-            }
-        }
+        public WebSocketState State => _websocket != null ? _websocket.ReadyState : WebSocketState.Connecting;
 
         #endregion
 
@@ -314,20 +238,20 @@ namespace WebSocketSharp.Server
 
         private string checkHandshakeRequest(WebSocketContext context)
         {
-            return _originValidator != null && !_originValidator(context.Origin)
+            return OriginValidator != null && !OriginValidator(context.Origin)
              ? "Includes no Origin header, or it has an invalid value."
-             : _cookiesValidator != null
-               && !_cookiesValidator(context.CookieCollection, context.WebSocket.CookieCollection)
+             : CookiesValidator != null
+               && !CookiesValidator(context.CookieCollection, context.WebSocket.CookieCollection)
                ? "Includes no cookie, or an invalid cookie exists."
                : null;
         }
 
         private void onClose(object sender, CloseEventArgs e)
         {
-            if (_id == null)
+            if (ID == null)
                 return;
 
-            _sessions.Remove(_id);
+            Sessions.Remove(ID);
             OnClose(e);
         }
 
@@ -343,14 +267,14 @@ namespace WebSocketSharp.Server
 
         private void onOpen(object sender, EventArgs e)
         {
-            _id = _sessions.Add(this);
-            if (_id == null)
+            ID = Sessions.Add(this);
+            if (ID == null)
             {
                 _websocket.Close(CloseStatusCode.Away);
                 return;
             }
 
-            _startTime = DateTime.Now;
+            StartTime = DateTime.Now;
             OnOpen();
         }
 
@@ -368,17 +292,17 @@ namespace WebSocketSharp.Server
                 return;
             }
 
-            _context = context;
-            _sessions = new WebSocketSessionManager(logger);
-            _sessions.Start();
+            Context = context;
+            Sessions = new WebSocketSessionManager(logger);
+            Sessions.Start();
 
             _websocket = context.WebSocket;
             _websocket.CustomHandshakeRequestChecker = checkHandshakeRequest;
             _websocket.EmitOnPing = _emitOnPing;
-            _websocket.IgnoreExtensions = _ignoreExtensions;
+            _websocket.IgnoreExtensions = IgnoreExtensions;
             _websocket.Protocol = _protocol;
 
-            var waitTime = _sessions.WaitTime;
+            var waitTime = Sessions.WaitTime;
             if (waitTime != _websocket.WaitTime)
                 _websocket.WaitTime = waitTime;
 

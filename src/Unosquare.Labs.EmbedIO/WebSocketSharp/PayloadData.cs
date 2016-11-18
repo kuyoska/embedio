@@ -41,7 +41,6 @@ namespace WebSocketSharp
         private ushort _code;
         private bool _codeSet;
         private byte[] _data;
-        private long _extDataLength;
         private long _length;
         private string _reason;
         private bool _reasonSet;
@@ -139,26 +138,9 @@ namespace WebSocketSharp
             }
         }
 
-        internal long ExtensionDataLength
-        {
-            get
-            {
-                return _extDataLength;
-            }
+        internal long ExtensionDataLength { get; set; }
 
-            set
-            {
-                _extDataLength = value;
-            }
-        }
-
-        internal bool HasReservedCode
-        {
-            get
-            {
-                return _length > 1 && Code.IsReserved();
-            }
-        }
+        internal bool HasReservedCode => _length > 1 && Code.IsReserved();
 
         internal string Reason
         {
@@ -181,33 +163,15 @@ namespace WebSocketSharp
 
         #region Public Properties
 
-        public byte[] ApplicationData
-        {
-            get
-            {
-                return _extDataLength > 0
-                       ? _data.SubArray(_extDataLength, _length - _extDataLength)
-                       : _data;
-            }
-        }
+        public byte[] ApplicationData => ExtensionDataLength > 0
+            ? _data.SubArray(ExtensionDataLength, _length - ExtensionDataLength)
+            : _data;
 
-        public byte[] ExtensionData
-        {
-            get
-            {
-                return _extDataLength > 0
-                       ? _data.SubArray(0, _extDataLength)
-                       : WebSocket.EmptyBytes;
-            }
-        }
+        public byte[] ExtensionData => ExtensionDataLength > 0
+            ? _data.SubArray(0, ExtensionDataLength)
+            : WebSocket.EmptyBytes;
 
-        public ulong Length
-        {
-            get
-            {
-                return (ulong)_length;
-            }
-        }
+        public ulong Length => (ulong)_length;
 
         #endregion
 

@@ -38,9 +38,7 @@ namespace WebSocketSharp
   {
 #region Private Fields
 
-    private CloseStatusCode _code;
-
-#endregion
+      #endregion
 
 #region Internal Constructors
 
@@ -82,7 +80,7 @@ namespace WebSocketSharp
     internal WebSocketException (CloseStatusCode code, string message, Exception innerException)
       : base (message ?? GetMessage(code), innerException)
     {
-      _code = code;
+      Code = code;
     }
 
         internal static string GetMessage(CloseStatusCode code)
@@ -118,13 +116,9 @@ namespace WebSocketSharp
         /// One of the <see cref="CloseStatusCode"/> enum values, represents the status code
         /// indicating the cause of the exception.
         /// </value>
-        public CloseStatusCode Code {
-      get {
-        return _code;
-      }
-    }
+        public CloseStatusCode Code { get; }
 
-#endregion
+      #endregion
   }
 }
 #endif

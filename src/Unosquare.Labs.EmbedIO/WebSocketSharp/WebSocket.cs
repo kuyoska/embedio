@@ -165,9 +165,6 @@ namespace WebSocketSharp
         private Action _closeContext;
         private CompressionMethod _compression;
         private WebSocketContext _context;
-        private CookieCollection _cookies;
-        private NetworkCredential _credentials;
-        private bool _emitOnPing;
         private bool _enableRedirection;
         private AutoResetEvent _exitReceiving;
         private string _extensions;
@@ -179,8 +176,6 @@ namespace WebSocketSharp
         private bool _fragmentsCompressed;
         private Opcode _fragmentsOpcode;
         private const string _guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-        private Func<WebSocketContext, string> _handshakeRequestChecker;
-        private bool _ignoreExtensions;
         private bool _inContinuation;
         private volatile bool _inMessage;
         private volatile ILog _logger;
@@ -196,7 +191,6 @@ namespace WebSocketSharp
         private Uri _proxyUri;
         private volatile WebSocketState _readyState;
         private AutoResetEvent _receivePong;
-        private bool _secure;
 #if SSL
         private ClientSslConfiguration _sslConfig;
 #endif
@@ -258,7 +252,7 @@ namespace WebSocketSharp
             _closeContext = context.Close;
             _logger = context.Log;
             _message = messages;
-            _secure = context.IsSecureConnection;
+            IsSecure = context.IsSecureConnection;
             _stream = context.Stream;
             _waitTime = TimeSpan.FromSeconds(1);
 
@@ -320,7 +314,7 @@ namespace WebSocketSharp
             _client = true;
             _logger = logger ?? new NullLog();
             _message = messagec;
-            _secure = _uri.Scheme == "wss";
+            IsSecure = _uri.Scheme == "wss";
             _waitTime = TimeSpan.FromSeconds(5);
 
             init();
@@ -330,21 +324,10 @@ namespace WebSocketSharp
 
 #region Internal Properties
 
-        internal CookieCollection CookieCollection => _cookies;
+        internal CookieCollection CookieCollection { get; private set; }
 
         // As server
-        internal Func<WebSocketContext, string> CustomHandshakeRequestChecker
-        {
-            get
-            {
-                return _handshakeRequestChecker;
-            }
-
-            set
-            {
-                _handshakeRequestChecker = value;
-            }
-        }
+        internal Func<WebSocketContext, string> CustomHandshakeRequestChecker { get; set; }
 
         internal bool HasMessage
         {
@@ -356,18 +339,7 @@ namespace WebSocketSharp
         }
 
         // As server
-        internal bool IgnoreExtensions
-        {
-            get
-            {
-                return _ignoreExtensions;
-            }
-
-            set
-            {
-                _ignoreExtensions = value;
-            }
-        }
+        internal bool IgnoreExtensions { get; set; }
 
         internal bool IsConnected => _readyState == WebSocketState.Open || _readyState == WebSocketState.Closing;
 
@@ -419,8 +391,8 @@ namespace WebSocketSharp
         {
             get
             {
-                lock (_cookies.SyncRoot)
-                    foreach (Cookie cookie in _cookies)
+                lock (CookieCollection.SyncRoot)
+                    foreach (Cookie cookie in CookieCollection)
                         yield return cookie;
             }
         }
@@ -432,7 +404,7 @@ namespace WebSocketSharp
         /// A <see cref="NetworkCredential"/> that represents the credentials for
         /// the authentication. The default value is <see langword="null"/>.
         /// </value>
-        public NetworkCredential Credentials => _credentials;
+        public NetworkCredential Credentials { get; private set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the <see cref="WebSocket"/> emits
@@ -442,18 +414,7 @@ namespace WebSocketSharp
         /// <c>true</c> if the <see cref="WebSocket"/> emits a <see cref="OnMessage"/> event
         /// when receives a ping; otherwise, <c>false</c>. The default value is <c>false</c>.
         /// </value>
-        public bool EmitOnPing
-        {
-            get
-            {
-                return _emitOnPing;
-            }
-
-            set
-            {
-                _emitOnPing = value;
-            }
-        }
+        public bool EmitOnPing { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the <see cref="WebSocket"/> redirects
@@ -511,7 +472,7 @@ namespace WebSocketSharp
         /// <value>
         /// <c>true</c> if the connection is secure; otherwise, <c>false</c>.
         /// </value>
-        public bool IsSecure => _secure;
+        public bool IsSecure { get; private set; }
 
         /// <summary>
         /// Gets the logging functions.
@@ -668,13 +629,7 @@ namespace WebSocketSharp
         /// <value>
         /// A <see cref="Uri"/> that represents the URL used to connect, or accepted.
         /// </value>
-        public Uri Url
-        {
-            get
-            {
-                return _client ? _uri : _context.RequestUri;
-            }
-        }
+        public Uri Url => _client ? _uri : _context.RequestUri;
 
         /// <summary>
         /// Gets or sets the wait time for the response to the Ping or Close.
@@ -802,7 +757,7 @@ namespace WebSocketSharp
             if (_protocol != null)
                 processSecWebSocketProtocolHeader(_context.SecWebSocketProtocols);
 
-            if (!_ignoreExtensions)
+            if (!IgnoreExtensions)
                 processSecWebSocketExtensionsClientHeader(_context.Headers["Sec-WebSocket-Extensions"]);
 
             return sendHttpResponse(createHandshakeResponse());
@@ -844,7 +799,7 @@ namespace WebSocketSharp
                 return false;
             }
 
-            if (!_ignoreExtensions
+            if (!IgnoreExtensions
                 && !validateSecWebSocketExtensionsClientHeader(headers["Sec-WebSocket-Extensions"])
             )
             {
@@ -1241,8 +1196,8 @@ namespace WebSocketSharp
                 headers["Authorization"] = authRes.ToString();
 #endif
 
-            if (_cookies.Count > 0)
-                ret.SetCookies(_cookies);
+            if (CookieCollection.Count > 0)
+                ret.SetCookies(CookieCollection);
 
             return ret;
         }
@@ -1261,8 +1216,8 @@ namespace WebSocketSharp
             if (_extensions != null)
                 headers["Sec-WebSocket-Extensions"] = _extensions;
 
-            if (_cookies.Count > 0)
-                ret.SetCookies(_cookies);
+            if (CookieCollection.Count > 0)
+                ret.SetCookies(CookieCollection);
 
             return ret;
         }
@@ -1271,8 +1226,8 @@ namespace WebSocketSharp
         private bool customCheckHandshakeRequest(WebSocketContext context, out string message)
         {
             message = null;
-            return _handshakeRequestChecker == null
-                   || (message = _handshakeRequestChecker(context)) == null;
+            return CustomHandshakeRequestChecker == null
+                   || (message = CustomHandshakeRequestChecker(context)) == null;
         }
 
         private MessageEventArgs dequeueFromMessageEventQueue()
@@ -1342,7 +1297,7 @@ namespace WebSocketSharp
         private void init()
         {
             _compression = CompressionMethod.None;
-            _cookies = new CookieCollection();
+            CookieCollection = new CookieCollection();
             _forSend = new object();
             _forState = new object();
             _messageEventQueue = new Queue<MessageEventArgs>();
@@ -1462,19 +1417,19 @@ namespace WebSocketSharp
             if (cookies.Count == 0)
                 return;
 
-            foreach (Cookie cookie in _cookies)
+            foreach (Cookie cookie in CookieCollection)
             {
-                if (_cookies[cookie.Name] == null)
+                if (CookieCollection[cookie.Name] == null)
                 {
                     if (!cookie.Expired)
-                        _cookies.Add(cookie);
+                        CookieCollection.Add(cookie);
 
                     continue;
                 }
 
                 if (!cookie.Expired)
                 {
-                    _cookies.Add(cookie);
+                    CookieCollection.Add(cookie);
                     continue;
                 }
 
@@ -1531,7 +1486,7 @@ namespace WebSocketSharp
             if (send(new WebSocketFrame(Opcode.Pong, frame.PayloadData, _client).ToArray()))
                 _logger.Info("Returned a pong.");
 
-            if (_emitOnPing)
+            if (EmitOnPing)
                 enqueueToMessageEventQueue(new MessageEventArgs(frame));
 
             return true;
@@ -1902,7 +1857,7 @@ namespace WebSocketSharp
                     releaseClientResources();
 
                     _uri = uri;
-                    _secure = uri.Scheme == "wss";
+                    IsSecure = uri.Scheme == "wss";
 
                     setClientStream();
                     return sendHandshakeRequest();
@@ -3239,8 +3194,8 @@ namespace WebSocketSharp
                     return;
                 }
 
-                lock (_cookies.SyncRoot)
-                    _cookies.Add(cookie);
+                lock (CookieCollection.SyncRoot)
+                    CookieCollection.Add(cookie);
             }
         }
 
@@ -3298,13 +3253,13 @@ namespace WebSocketSharp
                 if (string.IsNullOrEmpty(username))
                 {
                     _logger.WarnFormat("The credentials are initialized.");
-                    _credentials = null;
+                    Credentials = null;
                     _preAuth = false;
 
                     return;
                 }
 
-                _credentials = new NetworkCredential(username, password, _uri.PathAndQuery);
+                Credentials = new NetworkCredential(username, password, _uri.PathAndQuery);
                 _preAuth = preAuth;
             }
         }

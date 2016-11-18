@@ -144,13 +144,7 @@ namespace WebSocketSharp.Server
 
         #region Internal Properties
 
-        internal ServerState State
-        {
-            get
-            {
-                return _state;
-            }
-        }
+        internal ServerState State => _state;
 
         #endregion
 

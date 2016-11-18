@@ -47,16 +47,13 @@ namespace WebSocketSharp
     {
         #region Private Fields
 
-        private bool _clean;
-        private PayloadData _payloadData;
-
         #endregion
 
         #region Internal Constructors
 
         internal CloseEventArgs()
         {
-            _payloadData = PayloadData.Empty;
+            PayloadData = PayloadData.Empty;
         }
 
         internal CloseEventArgs(ushort code)
@@ -71,12 +68,12 @@ namespace WebSocketSharp
 
         internal CloseEventArgs(PayloadData payloadData)
         {
-            _payloadData = payloadData;
+            PayloadData = payloadData;
         }
 
         internal CloseEventArgs(ushort code, string reason)
         {
-            _payloadData = new PayloadData(code, reason);
+            PayloadData = new PayloadData(code, reason);
         }
 
         internal CloseEventArgs(CloseStatusCode code, string reason)
@@ -88,13 +85,7 @@ namespace WebSocketSharp
 
         #region Internal Properties
 
-        internal PayloadData PayloadData
-        {
-            get
-            {
-                return _payloadData;
-            }
-        }
+        internal PayloadData PayloadData { get; }
 
         #endregion
 
@@ -106,13 +97,7 @@ namespace WebSocketSharp
         /// <value>
         /// A <see cref="ushort"/> that represents the status code for the close if any.
         /// </value>
-        public ushort Code
-        {
-            get
-            {
-                return _payloadData.Code;
-            }
-        }
+        public ushort Code => PayloadData.Code;
 
         /// <summary>
         /// Gets the reason for the close.
@@ -120,13 +105,7 @@ namespace WebSocketSharp
         /// <value>
         /// A <see cref="string"/> that represents the reason for the close if any.
         /// </value>
-        public string Reason
-        {
-            get
-            {
-                return _payloadData.Reason ?? String.Empty;
-            }
-        }
+        public string Reason => PayloadData.Reason ?? string.Empty;
 
         /// <summary>
         /// Gets a value indicating whether the connection has been closed cleanly.
@@ -134,18 +113,7 @@ namespace WebSocketSharp
         /// <value>
         /// <c>true</c> if the connection has been closed cleanly; otherwise, <c>false</c>.
         /// </value>
-        public bool WasClean
-        {
-            get
-            {
-                return _clean;
-            }
-
-            internal set
-            {
-                _clean = value;
-            }
-        }
+        public bool WasClean { get; internal set; }
 
         #endregion
     }

@@ -516,7 +516,7 @@
             if (string.IsNullOrWhiteSpace(requestBody)) return null;
 
             // define a character for KV pairs
-            var kvpSeparator = new char[] { '=' };
+            var kvpSeparator = new[] { '=' };
 
             // Create the result object
             var resultDictionary = new Dictionary<string, object>();
@@ -541,7 +541,7 @@
 
                 // Decode the key and the value. Discard Special Characters
                 var key = WebUtility.UrlDecode(kvpsParts[0]);
-                if (key.IndexOf("[") > 0) key = key.Substring(0, key.IndexOf("["));
+                if (key.IndexOf("[", StringComparison.Ordinal) > 0) key = key.Substring(0, key.IndexOf("[", StringComparison.Ordinal));
 
                 var value = kvpsParts.Length >= 2 ? WebUtility.UrlDecode(kvpsParts[1]) : null;
 
@@ -555,7 +555,7 @@
                         // if we don't have a list value for this key, then create one and add the existing item
                         var existingValue = resultDictionary[key] as string;
                         resultDictionary[key] = new List<string>();
-                        listValue = resultDictionary[key] as List<string>;
+                        listValue = (List<string>) resultDictionary[key];
                         listValue.Add(existingValue);
                     }
 
@@ -645,9 +645,9 @@
         {
             var sb = new StringBuilder();
 
-            for (var i = 0; i < hash.Length; i++)
+            foreach (var t in hash)
             {
-                sb.Append(hash[i].ToString("x2"));
+                sb.Append(t.ToString("x2"));
             }
 
             return sb.ToString();
@@ -788,12 +788,11 @@
         internal static byte[] Append(this ushort code, string reason)
         {
             var ret = code.InternalToByteArray(ByteOrder.Big);
-            if (reason != null && reason.Length > 0)
-            {
-                var buff = new List<byte>(ret);
-                buff.AddRange(Encoding.UTF8.GetBytes(reason));
-                ret = buff.ToArray();
-            }
+            if (string.IsNullOrEmpty(reason)) return ret;
+
+            var buff = new List<byte>(ret);
+            buff.AddRange(Encoding.UTF8.GetBytes(reason));
+            ret = buff.ToArray();
 
             return ret;
         }
@@ -810,13 +809,12 @@
                 try
                 {
                     var buff = new byte[bufferLength];
-                    var nread = 0;
                     while (length > 0)
                     {
                         if (length < bufferLength)
                             bufferLength = (int)length;
 
-                        nread = stream.Read(buff, 0, bufferLength);
+                        var nread = stream.Read(buff, 0, bufferLength);
                         if (nread == 0)
                             break;
 
@@ -826,6 +824,7 @@
                 }
                 catch
                 {
+                    // ignored
                 }
 
                 dest.Close();
@@ -845,10 +844,9 @@
             var offset = 0;
             try
             {
-                var nread = 0;
                 while (length > 0)
                 {
-                    nread = stream.Read(buff, offset, length);
+                    var nread = stream.Read(buff, offset, length);
                     if (nread == 0)
                         break;
 
@@ -858,6 +856,7 @@
             }
             catch
             {
+                // ignored
             }
 
             return buff.SubArray(0, offset);
@@ -978,8 +977,7 @@
                   catch (Exception ex)
                   {
                       dest.Dispose();
-                      if (error != null)
-                          error(ex);
+                      error?.Invoke(ex);
                   }
               },
               null
@@ -993,8 +991,7 @@
             catch (Exception ex)
             {
                 dest.Dispose();
-                if (error != null)
-                    error(ex);
+                error?.Invoke(ex);
             }
         }
 
@@ -1060,7 +1057,7 @@
         public static byte[] ToHostOrder(this byte[] source, ByteOrder sourceOrder)
         {
             if (source == null)
-                throw new ArgumentNullException("source");
+                throw new ArgumentNullException(nameof(source));
 
             return source.Length > 1 && !sourceOrder.IsHostOrder() ? source.Reverse().ToArray() : source;
         }
@@ -1097,24 +1094,23 @@
                 return false;
 
             var c = value[0];
-            if (c == 'h')
-                return value == "http" || value == "https";
 
-            if (c == 'w')
-                return value == "ws" || value == "wss";
-
-            if (c == 'f')
-                return value == "file" || value == "ftp";
-
-            if (c == 'n')
+            switch (c)
             {
-                c = value[1];
-                return c == 'e'
-                       ? value == "news" || value == "net.pipe" || value == "net.tcp"
-                       : value == "nntp";
+                case 'h':
+                    return value == "http" || value == "https";
+                case 'w':
+                    return value == "ws" || value == "wss";
+                case 'f':
+                    return value == "file" || value == "ftp";
+                case 'n':
+                    c = value[1];
+                    return c == 'e'
+                        ? value == "news" || value == "net.pipe" || value == "net.tcp"
+                        : value == "nntp";
+                default:
+                    return (c == 'g' && value == "gopher") || (c == 'm' && value == "mailto");
             }
-
-            return (c == 'g' && value == "gopher") || (c == 'm' && value == "mailto");
         }
 
         /// <summary>
@@ -1128,17 +1124,14 @@
         /// </param>
         public static bool MaybeUri(this string value)
         {
-            if (value == null || value.Length == 0)
+            if (string.IsNullOrEmpty(value))
                 return false;
 
             var idx = value.IndexOf(':');
             if (idx == -1)
                 return false;
 
-            if (idx >= 10)
-                return false;
-
-            return value.Substring(0, idx).IsPredefinedScheme();
+            return idx < 10 && value.Substring(0, idx).IsPredefinedScheme();
         }
 
         /// <summary>
@@ -1219,26 +1212,17 @@
             result = port != -1
                      ? uri
                      : new Uri(
-                         String.Format(
-                           "{0}://{1}:{2}{3}",
-                           schm,
-                           uri.Host,
-                           schm == "ws" ? 80 : 443,
-                           uri.PathAndQuery));
+                    $"{schm}://{uri.Host}:{(schm == "ws" ? 80 : 443)}{uri.PathAndQuery}");
 
-            message = String.Empty;
+            message = string.Empty;
             return true;
         }
 
-        private const string _tspecials = "()<>@,;:\\\"/[]?={} \t";
+        private const string Tspecials = "()<>@,;:\\\"/[]?={} \t";
 
         internal static bool IsToken(this string value)
         {
-            foreach (var c in value)
-                if (c < 0x20 || c >= 0x7f || _tspecials.Contains(c))
-                    return false;
-
-            return true;
+            return value.All(c => c >= 0x20 && c < 0x7f && !Tspecials.Contains(c));
         }
 
         internal static bool ContainsTwice(string[] values)
@@ -1248,16 +1232,13 @@
             Func<int, bool> contains = null;
             contains = idx =>
             {
-                if (idx < len - 1)
-                {
-                    for (var i = idx + 1; i < len; i++)
-                        if (values[i] == values[idx])
-                            return true;
+                if (idx >= len - 1) return false;
 
-                    return contains(++idx);
-                }
+                for (var i = idx + 1; i < len; i++)
+                    if (values[i] == values[idx])
+                        return true;
 
-                return false;
+                return contains(++idx);
             };
 
             return contains(0);
@@ -1265,7 +1246,7 @@
 
         internal static string CheckIfValidProtocols(this string[] protocols)
         {
-            return protocols.Any(protocol => protocol == null || protocol.Length == 0 || !protocol.IsToken())
+            return protocols.Any(protocol => string.IsNullOrEmpty(protocol) || !protocol.IsToken())
                    ? "Contains an invalid value."
                    : ContainsTwice(protocols)
                      ? "Contains a value twice."
@@ -1297,13 +1278,10 @@
         {
             message = null;
 
-            if (time <= TimeSpan.Zero)
-            {
-                message = "A wait time is zero or less.";
-                return false;
-            }
+            if (time > TimeSpan.Zero) return true;
 
-            return true;
+            message = "A wait time is zero or less.";
+            return false;
         }
 
         /// <summary>
@@ -1330,19 +1308,19 @@
         public static string ToString<T>(this T[] array, string separator)
         {
             if (array == null)
-                throw new ArgumentNullException("array");
+                throw new ArgumentNullException(nameof(array));
 
             var len = array.Length;
             if (len == 0)
-                return String.Empty;
+                return string.Empty;
 
             if (separator == null)
-                separator = String.Empty;
+                separator = string.Empty;
 
             var buff = new StringBuilder(64);
             (len - 1).Times(i => buff.AppendFormat("{0}{1}", array[i].ToString(), separator));
 
-            buff.Append(array[len - 1].ToString());
+            buff.Append(array[len - 1]);
             return buff.ToString();
         }
 
@@ -1359,28 +1337,22 @@
         /// </param>
         public static void Times(this int n, Action<int> action)
         {
-            if (n > 0 && action != null)
-                for (int i = 0; i < n; i++)
-                    action(i);
+            if (n <= 0 || action == null) return;
+            for (var i = 0; i < n; i++)
+                action(i);
         }
         
-        private static void times(this ulong n, Action action)
-        {
-            for (ulong i = 0; i < n; i++)
-                action();
-        }
-        
-        internal static string ToExtensionString(
-      this CompressionMethod method, params string[] parameters)
+        internal static string ToExtensionString(this CompressionMethod method, params string[] parameters)
         {
             if (method == CompressionMethod.None)
-                return String.Empty;
+                return string.Empty;
 
-            var m = String.Format("permessage-{0}", method.ToString().ToLower());
+            var m = $"permessage-{method.ToString().ToLower()}";
+
             if (parameters == null || parameters.Length == 0)
                 return m;
 
-            return String.Format("{0}; {1}", m, parameters.ToString("; "));
+            return $"{m}; {parameters.ToString("; ")}";
         }
 
         internal static bool IsText(this string value)
@@ -1429,14 +1401,8 @@
                 return false;
 
             var vals = collection[name];
-            if (vals == null)
-                return false;
 
-            foreach (var val in vals.Split(','))
-                if (val.Trim().Equals(value, StringComparison.OrdinalIgnoreCase))
-                    return true;
-
-            return false;
+            return vals != null && vals.Split(',').Any(val => val.Trim().Equals(value, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
@@ -1455,14 +1421,9 @@
         /// </param>
         public static bool Contains(this string value, params char[] chars)
         {
-            return chars == null || chars.Length == 0
-                   ? true
-                   : value == null || value.Length == 0
-                     ? false
-                     : value.IndexOfAny(chars) > -1;
+            return chars == null || chars.Length == 0 || !string.IsNullOrEmpty(value) && value.IndexOfAny(chars) > -1;
         }
-
-
+        
         private static byte[] decompress(this byte[] data)
         {
             if (data.LongLength == 0)
@@ -1498,7 +1459,7 @@
                 return input.compressToArray();
         }
 
-        private static readonly byte[] _last = new byte[] { 0x00 };
+        private static readonly byte[] Last = new byte[] { 0x00 };
 
         private static MemoryStream compress(this Stream stream)
         {
@@ -1511,7 +1472,7 @@
             {
                 stream.CopyTo(ds, 1024);
                 ds.Close(); // BFINAL set to 1.
-                output.Write(_last, 0, 1);
+                output.Write(Last, 0, 1);
                 output.Position = 0;
 
                 return output;
@@ -1548,8 +1509,7 @@
                 return output.ToArray();
             }
         }
-
-
+        
         internal static byte[] Decompress(this byte[] data, CompressionMethod method)
         {
             return method == CompressionMethod.Deflate

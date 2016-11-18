@@ -52,7 +52,6 @@ namespace WebSocketSharp
 
         private string _data;
         private bool _dataSet;
-        private Opcode _opcode;
         private byte[] _rawData;
 
         #endregion
@@ -61,7 +60,7 @@ namespace WebSocketSharp
 
         internal MessageEventArgs(WebSocketFrame frame)
         {
-            _opcode = frame.Opcode;
+            Opcode = frame.Opcode;
             _rawData = frame.PayloadData.ApplicationData;
         }
 
@@ -70,7 +69,7 @@ namespace WebSocketSharp
             if ((ulong)rawData.LongLength > PayloadData.MaxLength)
                 throw new WebSocketException(CloseStatusCode.TooBig);
 
-            _opcode = opcode;
+            Opcode = opcode;
             _rawData = rawData;
         }
 
@@ -85,7 +84,7 @@ namespace WebSocketSharp
         /// <see cref="Opcode.Text"/>, <see cref="Opcode.Binary"/>,
         /// or <see cref="Opcode.Ping"/>.
         /// </value>
-        internal Opcode Opcode => _opcode;
+        internal Opcode Opcode { get; }
 
         #endregion
 
@@ -114,7 +113,7 @@ namespace WebSocketSharp
         /// <value>
         /// <c>true</c> if the message type is binary; otherwise, <c>false</c>.
         /// </value>
-        public bool IsBinary => _opcode == Opcode.Binary;
+        public bool IsBinary => Opcode == Opcode.Binary;
 
         /// <summary>
         /// Gets a value indicating whether the message type is ping.
@@ -122,7 +121,7 @@ namespace WebSocketSharp
         /// <value>
         /// <c>true</c> if the message type is ping; otherwise, <c>false</c>.
         /// </value>
-        public bool IsPing => _opcode == Opcode.Ping;
+        public bool IsPing => Opcode == Opcode.Ping;
 
         /// <summary>
         /// Gets a value indicating whether the message type is text.
@@ -130,7 +129,7 @@ namespace WebSocketSharp
         /// <value>
         /// <c>true</c> if the message type is text; otherwise, <c>false</c>.
         /// </value>
-        public bool IsText => _opcode == Opcode.Text;
+        public bool IsText => Opcode == Opcode.Text;
 
         /// <summary>
         /// Gets the message data as an array of <see cref="byte"/>.
@@ -155,7 +154,7 @@ namespace WebSocketSharp
             if (_dataSet)
                 return;
 
-            if (_opcode == Opcode.Binary)
+            if (Opcode == Opcode.Binary)
             {
                 _dataSet = true;
                 return;

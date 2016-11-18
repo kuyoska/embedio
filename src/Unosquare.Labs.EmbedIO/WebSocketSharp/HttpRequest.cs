@@ -48,8 +48,6 @@ namespace WebSocketSharp
     {
         #region Private Fields
 
-        private string _method;
-        private string _uri;
         private bool _websocketRequest;
         private bool _websocketRequestSet;
 
@@ -60,8 +58,8 @@ namespace WebSocketSharp
         private HttpRequest(string method, string uri, Version version, NameValueCollection headers)
           : base(version, headers)
         {
-            _method = method;
-            _uri = uri;
+            HttpMethod = method;
+            RequestUri = uri;
         }
 
         #endregion
@@ -91,21 +89,9 @@ namespace WebSocketSharp
         }
 #endif
 
-        public CookieCollection Cookies
-        {
-            get
-            {
-                return Headers.GetCookies(false);
-            }
-        }
+        public CookieCollection Cookies => Headers.GetCookies(false);
 
-        public string HttpMethod
-        {
-            get
-            {
-                return _method;
-            }
-        }
+        public string HttpMethod { get; }
 
         public bool IsWebSocketRequest
         {
@@ -114,7 +100,7 @@ namespace WebSocketSharp
                 if (!_websocketRequestSet)
                 {
                     var headers = Headers;
-                    _websocketRequest = _method == "GET" &&
+                    _websocketRequest = HttpMethod == "GET" &&
                                         ProtocolVersion > HttpVersion.Version10 &&
                                         headers.Contains("Upgrade", "websocket") &&
                                         headers.Contains("Connection", "Upgrade");
@@ -126,13 +112,7 @@ namespace WebSocketSharp
             }
         }
 
-        public string RequestUri
-        {
-            get
-            {
-                return _uri;
-            }
-        }
+        public string RequestUri { get; }
 
         #endregion
 
@@ -225,7 +205,7 @@ namespace WebSocketSharp
         public override string ToString()
         {
             var output = new StringBuilder(64);
-            output.AppendFormat("{0} {1} HTTP/{2}{3}", _method, _uri, ProtocolVersion, CrLf);
+            output.AppendFormat("{0} {1} HTTP/{2}{3}", HttpMethod, RequestUri, ProtocolVersion, CrLf);
 
             var headers = Headers;
             foreach (var key in headers.AllKeys)

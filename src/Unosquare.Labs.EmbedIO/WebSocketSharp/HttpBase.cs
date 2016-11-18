@@ -42,9 +42,7 @@ namespace WebSocketSharp
     {
         #region Private Fields
 
-        private NameValueCollection _headers;
         private const int _headersMaxLength = 8192;
-        private Version _version;
 
         #endregion
 
@@ -64,8 +62,8 @@ namespace WebSocketSharp
 
         protected HttpBase(Version version, NameValueCollection headers)
         {
-            _version = version;
-            _headers = headers;
+            ProtocolVersion = version;
+            Headers = headers;
         }
 
         #endregion
@@ -81,7 +79,7 @@ namespace WebSocketSharp
 
                 Encoding enc = null;
 
-                var contentType = _headers["Content-Type"];
+                var contentType = Headers["Content-Type"];
                 if (contentType != null && contentType.Length > 0)
                     enc = GetEncoding(contentType);
 
@@ -89,9 +87,9 @@ namespace WebSocketSharp
             }
         }
 
-        public NameValueCollection Headers => _headers;
+        public NameValueCollection Headers { get; }
 
-        public Version ProtocolVersion => _version;
+        public Version ProtocolVersion { get; }
 
         #endregion
 

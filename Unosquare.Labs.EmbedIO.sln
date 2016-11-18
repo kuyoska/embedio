@@ -23,6 +23,8 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Unosquare.Labs.EmbedIO.Comm
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Unosquare.Labs.EmbedIO.Samples", "src\Unosquare.Labs.EmbedIO.Samples\Unosquare.Labs.EmbedIO.Samples.xproj", "{5B312B76-1C92-4C50-9A44-BAF738377306}"
 EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Unosquare.Labs.EmbedIO.WebSocket", "src\Unosquare.Labs.EmbedIO.WebSocket\Unosquare.Labs.EmbedIO.WebSocket.xproj", "{6907A085-019A-4AD3-8229-796F6EA1FAF5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{5B312B76-1C92-4C50-9A44-BAF738377306}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5B312B76-1C92-4C50-9A44-BAF738377306}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5B312B76-1C92-4C50-9A44-BAF738377306}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6907A085-019A-4AD3-8229-796F6EA1FAF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6907A085-019A-4AD3-8229-796F6EA1FAF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6907A085-019A-4AD3-8229-796F6EA1FAF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6907A085-019A-4AD3-8229-796F6EA1FAF5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -54,5 +60,6 @@ Global
 		{C91F303C-DFF3-4260-8A66-0EBEF53F69F5} = {39AC0FCD-3DBB-4C9B-87EE-873D31165F28}
 		{852D375B-DCFE-49A6-BA71-7EF936ACF50C} = {97BC259A-4E78-4BA8-8F4D-2656BC78BB34}
 		{5B312B76-1C92-4C50-9A44-BAF738377306} = {97BC259A-4E78-4BA8-8F4D-2656BC78BB34}
+		{6907A085-019A-4AD3-8229-796F6EA1FAF5} = {97BC259A-4E78-4BA8-8F4D-2656BC78BB34}
 	EndGlobalSection
 EndGlobal

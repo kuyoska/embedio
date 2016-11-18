@@ -40,9 +40,6 @@ namespace WebSocketSharp
     {
         #region Private Fields
 
-        private string _code;
-        private string _reason;
-
         #endregion
 
         #region Private Constructors
@@ -50,8 +47,8 @@ namespace WebSocketSharp
         private HttpResponse(string code, string reason, Version version, NameValueCollection headers)
           : base(version, headers)
         {
-            _code = code;
-            _reason = reason;
+            StatusCode = code;
+            Reason = reason;
         }
 
         #endregion
@@ -73,27 +70,15 @@ namespace WebSocketSharp
 
         #region Public Properties
 
-        public CookieCollection Cookies
-        {
-            get
-            {
-                return Headers.GetCookies(true);
-            }
-        }
+        public CookieCollection Cookies => Headers.GetCookies(true);
 
-        public bool HasConnectionClose
-        {
-            get
-            {
-                return Headers.Contains("Connection", "close");
-            }
-        }
+        public bool HasConnectionClose => Headers.Contains("Connection", "close");
 
-        public bool IsProxyAuthenticationRequired => _code == "407";
+        public bool IsProxyAuthenticationRequired => StatusCode == "407";
 
-        public bool IsRedirect => _code == "301" || _code == "302";
+        public bool IsRedirect => StatusCode == "301" || StatusCode == "302";
 
-        public bool IsUnauthorized => _code == "401";
+        public bool IsUnauthorized => StatusCode == "401";
 
         public bool IsWebSocketResponse
         {
@@ -101,15 +86,15 @@ namespace WebSocketSharp
             {
                 var headers = Headers;
                 return ProtocolVersion > HttpVersion.Version10 &&
-                       _code == "101" &&
+                       StatusCode == "101" &&
                        headers.Contains("Upgrade", "websocket") &&
                        headers.Contains("Connection", "Upgrade");
             }
         }
 
-        public string Reason => _reason;
+        public string Reason { get; }
 
-        public string StatusCode => _code;
+        public string StatusCode { get; }
 
         #endregion
 
@@ -257,7 +242,7 @@ namespace WebSocketSharp
         public override string ToString()
         {
             var output = new StringBuilder(64);
-            output.AppendFormat("HTTP/{0} {1} {2}{3}", ProtocolVersion, _code, _reason, CrLf);
+            output.AppendFormat("HTTP/{0} {1} {2}{3}", ProtocolVersion, StatusCode, Reason, CrLf);
 
             var headers = Headers;
             foreach (var key in headers.AllKeys)
