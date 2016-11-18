@@ -71,6 +71,22 @@
     <Compile Include="WebServer.cs" />
     <Compile Include="WebModuleBase.cs" />
     <Compile Include="ModuleMap.cs" />
+    <Compile Include="WebServerBase.cs" />
+    <Compile Include="WebSocketServer.cs" />
+    <Compile Include="WebSocketSharp\CloseEventArgs.cs" />
+    <Compile Include="WebSocketSharp\CloseStatusCode.cs" />
+    <Compile Include="WebSocketSharp\CookieCollectionParser.cs" />
+    <Compile Include="WebSocketSharp\HttpBase.cs" />
+    <Compile Include="WebSocketSharp\HttpRequest.cs" />
+    <Compile Include="WebSocketSharp\HttpResponse.cs" />
+    <Compile Include="WebSocketSharp\MessageEventArgs.cs" />
+    <Compile Include="WebSocketSharp\PayloadData.cs" />
+    <Compile Include="WebSocketSharp\WebSocket.cs" />
+    <Compile Include="WebSocketSharp\WebSocketBehavior.cs" />
+    <Compile Include="WebSocketSharp\WebSocketContext.cs" />
+    <Compile Include="WebSocketSharp\WebSocketException.cs" />
+    <Compile Include="WebSocketSharp\WebSocketFrame.cs" />
+    <Compile Include="WebSocketSharp\WebSocketSessionManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
