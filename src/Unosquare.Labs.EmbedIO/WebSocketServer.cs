@@ -29,6 +29,8 @@ namespace Unosquare.Labs.EmbedIO
 
         private readonly Dictionary<string, WebSocketBehavior> _services = new Dictionary<string, WebSocketBehavior>();
 
+        public string FileSystemPath { get; protected set; }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="WebSocketServer"/> class.
         /// </summary>
@@ -39,25 +41,29 @@ namespace Unosquare.Labs.EmbedIO
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WebSocketServer"/> class.
+        /// Initializes a new instance of the <see cref="WebSocketServer" /> class.
         /// </summary>
         /// <param name="port">The port.</param>
-        public WebSocketServer(int port)
-            : this(port, new NullLog())
+        /// <param name="rootPath">The root path.</param>
+        public WebSocketServer(int port, string rootPath)
+            : this(port, new NullLog(), rootPath)
         {
             // placeholder
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WebSocketServer"/> class.
+        /// Initializes a new instance of the <see cref="WebSocketServer" /> class.
         /// </summary>
         /// <param name="port">The port.</param>
         /// <param name="log">The log.</param>
+        /// <param name="rootPath">The root path.</param>
         /// <exception cref="System.ArgumentException">Argument log must be specified</exception>
-        public WebSocketServer(int port, ILog log)
+        public WebSocketServer(int port, ILog log, string rootPath = null)
         {
             if (log == null)
                 throw new ArgumentException("Argument log must be specified");
+
+            FileSystemPath = rootPath ?? typeof(WebSocketServer).Assembly.Location;
 
             Listener = new TcpListener(IPAddress.Any, port);
             Log = log;
@@ -161,33 +167,34 @@ namespace Unosquare.Labs.EmbedIO
         private void HandleWebRequest(HttpContext context)
         {
             HttpResponse response = null;
-            foreach (var module in Modules)
+
+            try
             {
-                // TODO: Find handler
-                var callback = module.Handlers.FirstOrDefault()?.ResponseHandler;
+                var path = context.Request.RequestUri.Replace('/', Path.DirectorySeparatorChar);
 
-                if (callback != null)
+                if (path.Last() == Path.DirectorySeparatorChar)
+                    path = path + "index.html";
+                path = Path.Combine(FileSystemPath, path);
+
+                if (File.Exists(path))
                 {
-                    try
-                    {
-                        throw new Exception("OK");
-                    }
-                    catch (Exception ex)
-                    {
-                        // Log the exception message.
-                        var errorMessage = ex.ExceptionMessage("Failing module name: " + module.Name);
-                        Log.Error(errorMessage, ex);
-
-                        response = new HttpResponse(HttpStatusCode.InternalServerError);
-
-                        var message = string.Format(Constants.Response500HtmlFormat,
-                            WebUtility.HtmlEncode(errorMessage),
-                            WebUtility.HtmlEncode(ex.StackTrace));
-
-                        // Generate an HTML response
-                        response.Write(Encoding.UTF8.GetBytes(message));
-                    }
+                    response = new HttpResponse(HttpStatusCode.OK);
+                    response.Write(File.ReadAllBytes(path));
                 }
+            }
+            catch (Exception ex)
+            {
+                // Log the exception message.
+                Log.Error(ex.Message, ex);
+
+                response = new HttpResponse(HttpStatusCode.InternalServerError);
+
+                var message = string.Format(Constants.Response500HtmlFormat,
+                    WebUtility.HtmlEncode(ex.Message),
+                    WebUtility.HtmlEncode(ex.StackTrace));
+
+                // Generate an HTML response
+                response.Write(Encoding.UTF8.GetBytes(message));
             }
 
             // Not found
@@ -210,7 +217,7 @@ namespace Unosquare.Labs.EmbedIO
 
             if (_services.ContainsKey(finalPath) == false)
             {
-                context.Close(HttpStatusCode.NotImplemented);
+                context.Close(HttpStatusCode.NotFound);
                 return;
             }
 

@@ -26,8 +26,7 @@ namespace Unosquare.Labs.EmbedIO.WebSocket
 
             var logger = new Log.SimpleConsoleLog();
             
-            var socketServer = new WebSocketServer(8080, logger);
-            socketServer.WithStaticFolderAt("wwwroot");
+            var socketServer = new WebSocketServer(8080, logger, "wwwroot");
             socketServer.AddWebSocketService<EchoServer>("/echo");
 
             var cts = new CancellationTokenSource();

@@ -9,7 +9,7 @@
     /// <param name="server">The server.</param>
     /// <param name="context">The context.</param>
     /// <returns></returns>
-    public delegate bool ResponseHandler(WebServer server, HttpListenerContext context);
+    public delegate bool ResponseHandler(IWebServer server, HttpListenerContext context);
     
     /// <summary>
     /// An async delegate that handles certain action in a module given a path and a verb
@@ -17,7 +17,7 @@
     /// <param name="server">The server.</param>
     /// <param name="context">The context.</param>
     /// <returns></returns>
-    public delegate Task<bool> AsyncResponseHandler(WebServer server, HttpListenerContext context);
+    public delegate Task<bool> AsyncResponseHandler(IWebServer server, HttpListenerContext context);
     
     /// <summary>
     /// Interface to create web modules
@@ -47,6 +47,5 @@
         /// <param name="verb">The verb.</param>
         /// <param name="handler">The handler.</param>
         void AddHandler(string path, HttpVerbs verb, ResponseHandler handler);
-
     }
 }

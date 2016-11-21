@@ -164,7 +164,7 @@ namespace Unosquare.Labs.EmbedIO.Modules
         /// <summary>
         /// WebServer internal instance
         /// </summary>
-        public WebServer WebServer { get; protected set; }
+        public IWebServer WebServer { get; protected set; }
 
         /// <summary>
         /// Gets the Currently-Connected WebSockets.
@@ -237,7 +237,7 @@ namespace Unosquare.Labs.EmbedIO.Modules
         /// </summary>
         /// <param name="server">The server.</param>
         /// <param name="context">The context.</param>
-        public void AcceptWebSocket(WebServer server, HttpListenerContext context)
+        public void AcceptWebSocket(IWebServer server, HttpListenerContext context)
         {
             // first, accept the websocket
             WebServer = server;

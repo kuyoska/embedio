@@ -8,7 +8,7 @@
     using System.IO;
     using System.Linq;
     using System.Net;
-
+    
     /// <summary>
     /// Represents a simple module to server static files from the file system.
     /// </summary>
@@ -202,7 +202,7 @@
             AddHandler(ModuleMap.AnyPath, HttpVerbs.Get, (server, context) => HandleGet(context, server));
         }
 
-        private bool HandleGet(HttpListenerContext context, WebServer server, bool sendBuffer = true)
+        private bool HandleGet(HttpListenerContext context, IWebServer server, bool sendBuffer = true)
         {
             var rootFs = FileSystemPath;
             var urlPath = GetUrlPath(context, ref rootFs);
