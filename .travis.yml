@@ -1,7 +1,5 @@
 language: csharp
 solution: Unosquare.Labs.EmbedIO.Lib.sln
-notifications:
-  slack: unolabs:cbusXPH6pBwZ35rVDzi4k4ve
 matrix:
   include:
     - os: linux
