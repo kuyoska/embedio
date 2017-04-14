@@ -29,6 +29,7 @@
             WebServer = new WebServer(WebServerUrl);
             WebServer.RegisterModule(new LocalSessionModule() { Expiration = WaitTimeSpan });
             WebServer.RegisterModule(new StaticFilesModule(RootPath));
+            WebServer.RegisterModule(new WebApiModule());
             WebServer.Module<WebApiModule>().RegisterController<TestLocalSessionController>();
             WebServer.RunAsync();
         }
