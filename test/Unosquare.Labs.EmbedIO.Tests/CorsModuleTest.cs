@@ -9,14 +9,14 @@
     using Modules;
     using TestObjects;
 
-    [TestFixture]
+    //[TestFixture]
     public class CorsModuleTest
     {
         protected WebServer WebServer;
         protected string WebServerUrl;
         protected object TestObj = new { Message = "OK" };
 
-        [SetUp]
+        //[SetUp]
         public void Init()
         {
             Swan.Terminal.Settings.DisplayLoggingMessageType = Swan.LogMessageType.None;
@@ -34,7 +34,7 @@
             WebServer.RunAsync();
         }
 
-        [Test]
+        //[Test]
         public async Task GetFallback()
         {
             var webClient = new HttpClient();
@@ -49,7 +49,7 @@
             Assert.AreEqual(Json.Serialize(TestObj, jsonFormatting), jsonBody, "Same content");
         }
 
-        [Test]
+        //[Test]
         public async Task PreFlight()
         {
             var request = (HttpWebRequest)WebRequest.Create(WebServerUrl + TestController.GetPath);

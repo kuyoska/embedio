@@ -12,7 +12,7 @@ using System.Globalization;
 
 namespace Unosquare.Labs.EmbedIO.Tests
 {
-    [TestFixture]
+    //[TestFixture]
     public class WebServerCultureTest
     {
         protected WebServer WebServer;
@@ -20,7 +20,7 @@ namespace Unosquare.Labs.EmbedIO.Tests
         protected string WebServerUrl;
         private const string KoreanDate = "목";
 
-        [SetUp]
+        //[SetUp]
         public void Init()
         {
             WebServerUrl = Resources.GetServerAddress();
@@ -30,7 +30,7 @@ namespace Unosquare.Labs.EmbedIO.Tests
             WebServer.RunAsync();
         }
 
-        [Test]
+        //[Test]
         public async Task GetIndex()
         {
             var customDate = new DateTime(2015, 1, 1);

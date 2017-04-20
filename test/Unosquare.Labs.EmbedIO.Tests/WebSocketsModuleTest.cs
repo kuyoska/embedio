@@ -13,13 +13,13 @@
     using Net;
 #endif
 
-    [TestFixture]
+    //[TestFixture]
     public class WebSocketsModuleTest
     {
         private bool _ignoreWebConnect = false;
         protected WebServer WebServer;
 
-        [SetUp]
+        //[SetUp]
         public void Init()
         {
             Swan.Terminal.Settings.DisplayLoggingMessageType = Swan.LogMessageType.None;
@@ -35,7 +35,7 @@
 #endif
         }
 
-        [Test]
+        //[Test]
         public async Task TestConnectWebSocket()
         {
             const string wsUrl = Resources.WsServerAddress + "test";
@@ -75,7 +75,7 @@
 #endif
         }
 
-        [Test]
+        //[Test]
         public async Task TestSendBigDataWebSocket()
         {
             if (_ignoreWebConnect)

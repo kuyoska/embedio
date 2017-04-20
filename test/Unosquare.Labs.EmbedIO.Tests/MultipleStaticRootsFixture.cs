@@ -9,7 +9,7 @@
     using Modules;
     using TestObjects;
 
-    [TestFixture]
+    //[TestFixture]
     public class MultipleStaticRootsFixture
     {
         protected string RootPath;
@@ -18,7 +18,7 @@
         protected string WebServerUrl;
         protected string[] InstancesNames = {string.Empty, "A/", "B/", "C/", "A/C", "AAA/A/B/C/", "A/B/C"};
 
-        [SetUp]
+        //[SetUp]
         public void Init()
         {
             Swan.Terminal.Settings.DisplayLoggingMessageType = Swan.LogMessageType.None;
@@ -33,7 +33,7 @@
             WebServer.RunAsync();
         }
 
-        [Test]
+        //[Test]
         public async Task FileContentsMatchInstanceName()
         {
             foreach (var item in InstancesNames)

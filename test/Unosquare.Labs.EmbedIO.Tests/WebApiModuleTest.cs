@@ -13,13 +13,13 @@
     using TestObjects;
     using Swan.Networking;
 
-    [TestFixture]
+    //[TestFixture]
     public class WebApiModuleTest
     {
         protected WebServer WebServer;
         protected string WebServerUrl;
 
-        [SetUp]
+        //[SetUp]
         public void Init()
         {
             Swan.Terminal.Settings.DisplayLoggingMessageType = Swan.LogMessageType.None;
@@ -31,7 +31,7 @@
             WebServer.RunAsync();
         }
         
-        [Test]
+        //[Test]
         public async Task GetJsonData()
         {
             List<Person> remoteList;
@@ -56,21 +56,21 @@
             await TestHelper.ValidatePerson(WebServerUrl + TestController.GetPath + remoteList.First().Key);
         }
 
-        [Test]
+        //[Test]
         public async Task GetJsonDataWithMiddleUrl()
         {
             var person = PeopleRepository.Database.First();
             await TestHelper.ValidatePerson(WebServerUrl + TestController.GetMiddlePath.Replace("*", person.Key.ToString()));
         }
 
-        [Test]
+        //[Test]
         public async Task GetJsonAsyncData()
         {
             var person = PeopleRepository.Database.First();
             await TestHelper.ValidatePerson(WebServerUrl + TestController.GetAsyncPath + person.Key);
         }
 
-        [Test]
+        //[Test]
         public async Task PostJsonData()
         {
             var model = new Person() {Key = 10, Name = "Test"};
@@ -79,7 +79,7 @@
             Assert.AreEqual(result.Name, model.Name);
         }
 
-        [Test]
+        //[Test]
         public async Task TestWebApiWithConstructor()
         {
             const string name = "Test";
@@ -98,7 +98,7 @@
             }
         }
 
-        [Test]
+        //[Test]
         public async Task TestDictionaryFormData()
         {
             using (var webClient = new HttpClient())
@@ -128,8 +128,8 @@
             public List<string> id { get; set; }
         }
 
-        [TestCase("id", "id")]
-        [TestCase("id[0]", "id[1]")]
+        //[TestCase("id", "id")]
+        //[TestCase("id[0]", "id[1]")]
         public async Task TestMultipleIndexedValuesFormData(string label1, string label2)
         {
             using (var webClient = new HttpClient())

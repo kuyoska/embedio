@@ -9,13 +9,13 @@
     using System.Threading.Tasks;
     using TestObjects;
 
-    [TestFixture]
+    //[TestFixture]
     public class RegexRoutingTest
     {
         protected WebServer WebServer;
         protected string WebServerUrl;
 
-        [SetUp]
+        //[SetUp]
         public void Init()
         {
             Swan.Terminal.Settings.DisplayLoggingMessageType = Swan.LogMessageType.None;
@@ -27,13 +27,13 @@
             WebServer.RunAsync();
         }
         
-        [Test]
+        //[Test]
         public async Task GetJsonDataWithRegexId()
         {
             await TestHelper.ValidatePerson(WebServerUrl + TestRegexController.RelativePath + "regex/1");
         }
 
-        [Test]
+        //[Test]
         public async Task GetJsonDataWithOptRegexId()
         {
             // using null value
@@ -58,13 +58,13 @@
             await TestHelper.ValidatePerson(WebServerUrl + TestRegexController.RelativePath + "regexopt/1");
         }
 
-        [Test]
+        //[Test]
         public async Task GetJsonDatAsyncWithRegexId()
         {
             await TestHelper.ValidatePerson(WebServerUrl + TestRegexController.RelativePath + "regexAsync/1");
         }
 
-        [Test]
+        //[Test]
         public async Task GetJsonDataWithRegexDate()
         {
             var person = PeopleRepository.Database.First();
@@ -72,7 +72,7 @@
                            person.DoB.ToString("yyyy-MM-dd"));
         }
 
-        [Test]
+        //[Test]
         public async Task GetJsonDataWithRegexWithTwoParams()
         {
             var person = PeopleRepository.Database.First();

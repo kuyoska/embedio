@@ -8,18 +8,18 @@
     using Modules;
     using TestObjects;
 
-    [TestFixture]
+    //[TestFixture]
     public class WebServerTest
     {
         private const string DefaultPath = "/";
 
-        [SetUp]
+        //[SetUp]
         public void Setup()
         {
             Swan.Terminal.Settings.DisplayLoggingMessageType = Swan.LogMessageType.None;
         }
 
-        [Test]
+        //[Test]
         public void WebServerDefaultConstructor()
         {
             var instance = new WebServer();
@@ -27,7 +27,7 @@
             Assert.IsNotNull(Constants.DefaultMimeTypes, "It has MimeTypes");
         }
 
-        [Test]
+        //[Test]
         public void WebserverCanBeDisposed()
         {
             Assert.Ignore("This test is not longer valid, rewrite it");
@@ -59,7 +59,7 @@
             //}
         }
 
-        [Test]
+        //[Test]
         public void WebServerCanBeRestarted()
         {
             Assert.Ignore("This test is not longer valid, rewrite it");
@@ -109,7 +109,7 @@
             //}
         }
 
-        [Test]
+        //[Test]
         public void RegisterAndUnregisterModule()
         {
             var instance = new WebServer();
@@ -122,7 +122,7 @@
             Assert.AreEqual(instance.Modules.Count, 0, "It has not modules");
         }
 
-        [Test]
+        //[Test]
         public void WebMap()
         {
             var map = new Map() {Path = DefaultPath, ResponseHandler = (ctx, ws) => Task.FromResult(false), Verb = HttpVerbs.Any};
@@ -131,7 +131,7 @@
             Assert.AreEqual(map.Verb, HttpVerbs.Any, "Default Verb is correct");
         }
 
-        [Test]
+        //[Test]
         public void WebModuleAddHandler()
         {
             var webModule = new TestWebModule();
@@ -144,7 +144,7 @@
         }
 
 #if NET452 || NET46
-        [Test]
+        //[Test]
         public async Task TestWebModuleRedirect()
         {
             var url = Resources.GetServerAddress();
@@ -164,7 +164,7 @@
             }
         }
 
-        [Test]
+        //[Test]
         public async Task TestWebModuleAbsoluteRedirect()
         {
             var url = Resources.GetServerAddress();
